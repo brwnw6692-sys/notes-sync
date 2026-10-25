@@ -36,6 +36,14 @@ class Config:
     rhythm_min_posts: int = 50              # RETUNE
     quarantine_max_per_source: int = 3
     quarantine_max_total: int = 50
+    # Coverage grid over the Middle East (degrees). Box spans Gaza/Sinai up to Iran/Caucasus.
+    grid_lat_min: float = 12.0
+    grid_lat_max: float = 40.0
+    grid_lon_min: float = 34.0
+    grid_lon_max: float = 64.0
+    grid_cell_deg: float = 0.5             # RETUNE
+    heat_sigma_km: float = 60.0            # city heat falloff radius; RETUNE
+    coverage_hot_weight: float = 0.5       # a cell counts as "hot" above this weight; RETUNE
     rhythm_active_ratio: float = 1.0        # active = share >= ratio x uniform (1/24); RETUNE
 
 

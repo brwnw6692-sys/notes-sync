@@ -1,0 +1,20 @@
+[
+  {"name": "gaza", "lat": 31.50, "lon": 34.47, "weight": 8},
+  {"name": "khan_yunis", "lat": 31.34, "lon": 34.30, "weight": 5},
+  {"name": "jerusalem", "lat": 31.78, "lon": 35.23, "weight": 7},
+  {"name": "west_bank_nablus", "lat": 32.22, "lon": 35.26, "weight": 5},
+  {"name": "beirut", "lat": 33.89, "lon": 35.50, "weight": 8},
+  {"name": "tyre", "lat": 33.27, "lon": 35.20, "weight": 4},
+  {"name": "damascus", "lat": 33.51, "lon": 36.29, "weight": 8},
+  {"name": "aleppo", "lat": 36.20, "lon": 37.16, "weight": 7},
+  {"name": "deir_ez_zor", "lat": 35.34, "lon": 40.14, "weight": 4},
+  {"name": "baghdad", "lat": 33.31, "lon": 44.36, "weight": 9},
+  {"name": "mosul", "lat": 36.34, "lon": 43.13, "weight": 6},
+  {"name": "basra", "lat": 30.51, "lon": 47.82, "weight": 5},
+  {"name": "tehran", "lat": 35.69, "lon": 51.39, "weight": 10},
+  {"name": "isfahan", "lat": 32.65, "lon": 51.67, "weight": 6},
+  {"name": "mashhad", "lat": 36.30, "lon": 59.56, "weight": 6},
+  {"name": "sanaa", "lat": 15.37, "lon": 44.19, "weight": 7},
+  {"name": "aden", "lat": 12.79, "lon": 45.02, "weight": 5},
+  {"name": "hodeidah", "lat": 14.80, "lon": 42.95, "weight": 4}
+]
