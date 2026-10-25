@@ -41,17 +41,19 @@ def _git(root: Path, *args):
 
 
 def _parse(argv):
-    p = argparse.ArgumentParser(prog="addsource")
+    # --repo is shared by every subcommand, so it is accepted in any position.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--repo", help="git URL of the repo (for push); omit to only read local")
+    p = argparse.ArgumentParser(prog="addsource", parents=[common])
     sub = p.add_subparsers(dest="action", required=True)
-    a = sub.add_parser("add")
+    a = sub.add_parser("add", parents=[common])
     a.add_argument("handle")
     a.add_argument("--region", required=True)
     a.add_argument("--tier", choices=["hot", "quiet"], default="quiet")
     a.add_argument("--canary", action="store_true")
-    r = sub.add_parser("remove")
+    r = sub.add_parser("remove", parents=[common])
     r.add_argument("handle")
-    sub.add_parser("list")
-    p.add_argument("--repo", help="git URL of the repo (for push); omit to only read local")
+    sub.add_parser("list", parents=[common])
     return p.parse_args(argv)
 
 
