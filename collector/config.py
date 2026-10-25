@@ -12,7 +12,8 @@ class Config:
     quiet_every_min: int = 60
     red_duration_hours: int = 6
     gap_fill_max_pages: int = 5
-    simhash_hamming_max: int = 3            # RETUNE
+    # Measured on 64-bit char-4-gram SimHash: small edits = 4-8, unrelated texts ~= 32.
+    simhash_hamming_max: int = 12           # RETUNE
     simhash_window_hours: int = 6
     phash_recycle_after_hours: int = 48
     phash_retention_days: int = 365
