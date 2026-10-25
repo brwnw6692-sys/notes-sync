@@ -1,3 +1,6 @@
 gazetteer.json is built from GeoNames data (https://www.geonames.org),
 licensed under Creative Commons Attribution 4.0 (CC BY 4.0).
-Populated places (feature class P), min population 200, for the covered region.
+Populated places (feature class P), min population 200, for the whole covered
+region: Turkey, Cyprus, the Levant (IL, PS, LB, SY, JO), Egypt, Iraq, Iran,
+Yemen, and the Arabian Peninsula (SA, KW, BH, QA, AE, OM).
+Per-cell importance (heat) is derived from these places' populations.

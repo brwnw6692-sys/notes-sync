@@ -28,9 +28,11 @@ def test_snapshot_reports_blind_hot_cells_when_uncovered():
     assert snap["coverage_pct"] == 0
 
 
-def test_covering_a_hot_area_raises_coverage():
-    snap = build_snapshot([_item(35.69, 51.39, "c1"), _item(35.70, 51.40, "c2")], NOW)
-    assert snap["coverage_pct"] > 0
+def test_covering_a_hot_area_counts_that_cell_as_covered():
+    # One cell out of a region-wide hot core rounds to ~0% coverage, but it IS counted as covered.
+    base = build_snapshot([], NOW)["covered_hot_cells"]
+    snap = build_snapshot([_item(35.69, 51.39, "c1"), _item(35.70, 51.40, "c2")], NOW)  # Tehran
+    assert snap["covered_hot_cells"] == base + 1
 
 
 def test_snapshot_roundtrips_encrypted_and_passes_guard(tmp_path):

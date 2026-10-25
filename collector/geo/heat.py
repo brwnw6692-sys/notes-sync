@@ -1,27 +1,32 @@
-"""Per-cell "heat": importance computed from nearby cities, decaying with distance.
+"""Per-cell importance = how many people live there.
 
-Dense, central places come out hot on their own; margins stay cold. This is the weight that
-coverage is measured against, so a quiet hot cell is a real gap while a quiet cold cell is fine.
+Population-based, from the gazetteer, so the whole region is in scope uniformly — everywhere there
+are people, not a handful of conflict cities. A quiet populated cell is a real gap; empty desert and
+sea stay cold. log1p keeps a megacity and a town both "hot" without one drowning the other.
 """
-import json
 import math
 from functools import lru_cache
-from pathlib import Path
 
-from collector.config import CONFIG
-from collector.geo.grid import all_cells, center_of, haversine_km
+from collector.geo.gazetteer import gazetteer_entries
+from collector.geo.grid import all_cells, cell_of, center_of
 
-_CITIES = json.loads((Path(__file__).parent / "cities.json").read_text(encoding="utf-8"))
+
+@lru_cache(maxsize=1)
+def _cell_population() -> dict:
+    pop: dict = {}
+    for e in gazetteer_entries():
+        rc = cell_of(e["lat"], e["lon"])
+        if rc is not None:
+            pop[rc] = pop.get(rc, 0) + e.get("population", 0)
+    return pop
 
 
 def cell_weight(center: tuple) -> float:
-    """Sum of each city's weight attenuated by a Gaussian in distance (sigma = heat_sigma_km)."""
-    sigma = CONFIG.heat_sigma_km
-    total = 0.0
-    for city in _CITIES:
-        d = haversine_km(center, (city["lat"], city["lon"]))
-        total += city["weight"] * math.exp(-(d * d) / (2 * sigma * sigma))
-    return total
+    """Importance of the grid cell containing this point: log of its total population."""
+    rc = cell_of(center[0], center[1])
+    if rc is None:
+        return 0.0
+    return math.log1p(_cell_population().get(rc, 0))
 
 
 @lru_cache(maxsize=1)

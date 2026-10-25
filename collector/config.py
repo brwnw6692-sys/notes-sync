@@ -42,12 +42,12 @@ class Config:
     quarantine_max_total: int = 50
     # Coverage grid over the Middle East (degrees). Box spans Gaza/Sinai up to Iran/Caucasus.
     grid_lat_min: float = 12.0
-    grid_lat_max: float = 40.0
-    grid_lon_min: float = 34.0
+    grid_lat_max: float = 42.5             # includes all of Turkey (Black Sea coast)
+    grid_lon_min: float = 25.0             # includes western Turkey (Istanbul, Izmir, the Aegean)
     grid_lon_max: float = 64.0
     grid_cell_deg: float = 0.5             # RETUNE
     heat_sigma_km: float = 60.0            # city heat falloff radius; RETUNE
-    coverage_hot_weight: float = 0.5       # a cell counts as "hot" above this weight; RETUNE
+    coverage_hot_weight: float = 6.0       # ~log1p(400): any populated cell is in scope; RETUNE
     # Adaptive resolution: refine a cell into sub-cells only where activity is dense.
     adaptive_factor: int = 5               # each level divides a cell into factor x factor
     adaptive_max_level: int = 3            # 0.5 -> 0.1 -> 0.02 -> 0.004 deg (~440 m, village)
