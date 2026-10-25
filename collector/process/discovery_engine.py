@@ -6,7 +6,7 @@ each sample over time, and read off the candidates that have earned a place in t
 """
 from collector.config import CONFIG
 from collector.process.discovery import _field, extract_candidates
-from collector.process.vetting import rank_candidates, vet_candidate
+from collector.process.vetting import candidate_lens, rank_candidates, vet_candidate
 
 
 def _day(now) -> str:
@@ -56,16 +56,18 @@ def record(cand_state: dict, handle: str, samples, now) -> str:
     verdict = vet_candidate(c["samples"], days_seen=len(c["days"]))
     if verdict == "promote":
         c["status"] = "promoted"
+        c["lens"] = candidate_lens(c["samples"])   # ar / fa / he — the source's reporting window
     elif verdict == "reject":
         c["status"] = "rejected"
     return verdict
 
 
 def new_promotions(cand_state: dict) -> list:
-    """Promoted candidates not yet added to the registry; marks them added. Returns [(handle, region)]."""
+    """Promoted candidates not yet added; marks them added. Returns [(handle, region, lens)]."""
     out = []
     for handle, c in cand_state.items():
         if c["status"] == "promoted" and not c.get("added"):
             c["added"] = True
-            out.append((handle, c["regions"][0] if c["regions"] else CONFIG.discovery_default_region))
+            region = c["regions"][0] if c["regions"] else CONFIG.discovery_default_region
+            out.append((handle, region, c.get("lens", "")))
     return out

@@ -47,12 +47,21 @@ def test_a_good_candidate_promotes_after_two_days():
     assert state["origin_b"]["status"] == "promoted"
 
 
-def test_wrong_language_candidate_is_rejected_not_promoted():
+def test_hebrew_candidate_is_promoted_with_an_israeli_lens():
+    # Israel is a first-class lens, not an exception — a Hebrew channel enrolls, tagged he.
     state = {}
     de.register(state, {"heb_chan": {"israel"}}, D1)
     de.record(state, "heb_chan", _samples(6, lang="he"), D1)
-    assert de.record(state, "heb_chan", _samples(6, lang="he"), D2) == "reject"
-    assert state["heb_chan"]["status"] == "rejected"
+    assert de.record(state, "heb_chan", _samples(6, lang="he"), D2) == "promote"
+    assert state["heb_chan"]["status"] == "promoted"
+    assert state["heb_chan"]["lens"] == "he"
+
+
+def test_off_region_language_is_rejected():
+    state = {}
+    de.register(state, {"eng_chan": {"x"}}, D1)
+    de.record(state, "eng_chan", _samples(6, lang="en"), D1)
+    assert de.record(state, "eng_chan", _samples(6, lang="en"), D2) == "reject"
 
 
 def test_new_promotions_are_reported_once():
@@ -60,5 +69,5 @@ def test_new_promotions_are_reported_once():
     de.register(state, {"origin_b": {"arab_world"}}, D1)
     de.record(state, "origin_b", _samples(5), D1)
     de.record(state, "origin_b", _samples(5), D2)
-    assert de.new_promotions(state) == [("origin_b", "arab_world")]
+    assert de.new_promotions(state) == [("origin_b", "arab_world", "ar")]
     assert de.new_promotions(state) == []   # already added, not reported again

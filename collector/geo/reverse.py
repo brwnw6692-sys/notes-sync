@@ -1,25 +1,33 @@
 """Reverse the gazetteer: name the most prominent place inside a grid cell.
 
-This is what turns a blind spot (a cell with activity but no coverage) into something we can act on —
-an Arabic place name to search for channels that report from there.
+This turns a blind spot into something we can act on — a place name to search channels for. We return
+the name in both Arabic and Hebrew when the place has them, so one blind cell finds both the Arab and
+the Israeli channels reporting from there (Israel is a lens, not an exception).
 """
 
 
-def _arabic_name(names):
-    """An Arabic-script name, or None — a Latin transliteration makes a useless Telegram query."""
+def _script_name(names, lo, hi):
     for n in names:
-        if any("؀" <= c <= "ۿ" for c in n):
+        if any(lo <= c <= hi for c in n):
             return n
     return None
 
 
-def place_in_cell(entries, lat: float, lon: float, half: float) -> str:
-    """Arabic name of the most populous Arabic-named place within ±half degrees of (lat, lon); '' if none.
-    Places with no Arabic name are skipped, so the query always reads as an Arab-world place."""
-    best_name, best_pop = "", -1
+def _arabic(names):
+    return _script_name(names, "؀", "ۿ")
+
+
+def _hebrew(names):
+    return _script_name(names, "֐", "׿")
+
+
+def queries_in_cell(entries, lat: float, lon: float, half: float) -> list:
+    """Arabic and/or Hebrew name(s) of the most populous named place within ±half degrees; [] if none.
+    A place with only a Latin transliteration is skipped — it makes a useless Telegram query."""
+    best, best_pop = None, -1
     for e in entries:
         if abs(e["lat"] - lat) <= half and abs(e["lon"] - lon) <= half:
-            name = _arabic_name(e["names"])
-            if name and e.get("population", 0) > best_pop:
-                best_name, best_pop = name, e.get("population", 0)
-    return best_name
+            ar, he = _arabic(e["names"]), _hebrew(e["names"])
+            if (ar or he) and e.get("population", 0) > best_pop:
+                best, best_pop = (ar, he), e.get("population", 0)
+    return [q for q in best if q] if best else []

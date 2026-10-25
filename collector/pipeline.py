@@ -18,7 +18,7 @@ def _blind_spot_search(cand, key, root, blind, search, now) -> None:
         return
     from collector.geo.gazetteer import gazetteer_entries
     from collector.geo.grid import cell_id, cell_of
-    from collector.geo.reverse import place_in_cell
+    from collector.geo.reverse import queries_in_cell
     entries = gazetteer_entries()
     half = CONFIG.grid_cell_deg / 2
     log = state_store.load_searches(key, root)
@@ -28,10 +28,11 @@ def _blind_spot_search(cand, key, root, blind, search, now) -> None:
         rc = cell_of(b["lat"], b["lon"])
         if rc is None or log.get(cell_id(rc)) == day:
             continue
-        q = place_in_cell(entries, b["lat"], b["lon"], half)
+        queries = queries_in_cell(entries, b["lat"], b["lon"], half)  # Arabic and/or Hebrew
         log[cell_id(rc)] = day
-        if q:
-            de.register(cand, {h: {q} for h in search(q)}, now)
+        if queries:
+            for q in queries:
+                de.register(cand, {h: {q} for h in search(q)}, now)
             done += 1
             if done >= CONFIG.discovery_searches_per_run:
                 break
@@ -58,8 +59,8 @@ def _discover(root, key, fetch, items, sources, now, blind=None, search=None) ->
     promos = de.new_promotions(cand)
     if promos:
         registry = state_store.load_sources(key, root)
-        for handle, region in promos:
-            registry = add_source(registry, handle, region, tier="quiet", discovered=True)
+        for handle, region, lens in promos:
+            registry = add_source(registry, handle, region, tier="quiet", discovered=True, lens=lens)
         state_store.save_sources(registry, key, root)
     state_store.save_candidates(cand, key, root)
     return {"promoted": len(promos), "tracked": len(cand)}

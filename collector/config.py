@@ -23,7 +23,7 @@ class Config:
     # Rhythm-aware silence: zero posts when >= this many were expected. Poisson P(0 | 4) ~= 1.8%.
     silence_min_expected_posts: float = 4.0  # RETUNE
     hot_items_retention_days: int = 7
-    vet_min_arabic_persian: float = 0.6     # RETUNE
+    vet_min_relevant_lang: float = 0.6      # share in a Middle East language (ar/fa/he); RETUNE
     vet_min_place_mentions: float = 0.2     # RETUNE
     vet_min_original: float = 0.3           # RETUNE
     vet_min_posts_per_day: float = 1.0
