@@ -9,3 +9,6 @@ data_work/
 # Private: design docs and assistant instructions never go to the public repo
 docs/
 CLAUDE.md
+
+# Local secrets: never committed
+.secrets/
