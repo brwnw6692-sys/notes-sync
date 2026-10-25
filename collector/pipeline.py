@@ -11,11 +11,39 @@ from collector.run import process_items
 from collector.store import state_store
 
 
-def _discover(root, key, fetch, items, sources, now) -> dict:
-    """Grow the network: fold in referenced channels, sample a few public pages (blind spots first),
-    and auto-enroll any that earn it. Returns {promoted, candidates} for metrics."""
+def _blind_spot_search(cand, key, root, blind, search, now) -> None:
+    """Turn the hottest blind cells into Arabic place queries and fold the results in as candidates —
+    the map sends scouts to its own gaps. One cell is probed at most once a day."""
+    if not search or not blind:
+        return
+    from collector.geo.gazetteer import gazetteer_entries
+    from collector.geo.grid import cell_id, cell_of
+    from collector.geo.reverse import place_in_cell
+    entries = gazetteer_entries()
+    half = CONFIG.grid_cell_deg / 2
+    log = state_store.load_searches(key, root)
+    day = now.date().isoformat()
+    done = 0
+    for b in sorted(blind, key=lambda b: -b.get("heat", 0)):
+        rc = cell_of(b["lat"], b["lon"])
+        if rc is None or log.get(cell_id(rc)) == day:
+            continue
+        q = place_in_cell(entries, b["lat"], b["lon"], half)
+        log[cell_id(rc)] = day
+        if q:
+            de.register(cand, {h: {q} for h in search(q)}, now)
+            done += 1
+            if done >= CONFIG.discovery_searches_per_run:
+                break
+    state_store.save_searches(log, key, root)
+
+
+def _discover(root, key, fetch, items, sources, now, blind=None, search=None) -> dict:
+    """Grow the network: fold in referenced channels and blind-spot search hits, sample a few public
+    pages (blind spots first), and auto-enroll any that earn it. Returns {promoted, tracked} metrics."""
     cand = state_store.load_candidates(key, root)
     de.register(cand, de.candidate_regions(items, sources), now)
+    _blind_spot_search(cand, key, root, blind or [], search, now)
 
     covered = {s.get("region") for s in sources if s.get("status", "active") == "active"}
     blind = {r for c in cand.values() for r in c["regions"]} - covered
@@ -37,7 +65,7 @@ def _discover(root, key, fetch, items, sources, now) -> dict:
     return {"promoted": len(promos), "tracked": len(cand)}
 
 
-def execute_run(root: Path, key: bytes, fetch, now: datetime, budget: int) -> dict:
+def execute_run(root: Path, key: bytes, fetch, now: datetime, budget: int, search=None) -> dict:
     state = state_store.load_state(key, root)
     # The registry (user-managed) is authoritative for WHICH sources to watch;
     # prior run-state supplies each one's cursor and counters.
@@ -56,8 +84,11 @@ def execute_run(root: Path, key: bytes, fetch, now: datetime, budget: int) -> di
     # The map reflects everything in the hot tier (last 7 days), not just this run's delta,
     # and re-locates any item that has no coordinates with the current gazetteer.
     recent = state_store.load_recent_items(key, root)
-    save_snapshot(build_snapshot(locate_rows(recent), now), key, root)
+    snapshot = build_snapshot(locate_rows(recent), now)
+    save_snapshot(snapshot, key, root)
 
-    # Mine the whole hot tier for references, not just this run's delta (most runs fetch nothing new).
-    result.metrics.update(_discover(root, key, fetch, recent, state["sources"], now))
+    # Mine the whole hot tier for references (most runs fetch nothing new), and send scouts to the
+    # map's hottest blind spots via directory search.
+    result.metrics.update(_discover(root, key, fetch, recent, state["sources"], now,
+                                    blind=snapshot["blind"], search=search))
     return result.metrics

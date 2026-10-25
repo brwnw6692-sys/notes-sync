@@ -50,3 +50,19 @@ def test_the_user_seed_is_never_overwritten_by_discovery(tmp_path):
     execute_run(tmp_path, KEY, _fetch, D2, budget=10)
     chan_a = next(s for s in load_sources(KEY, tmp_path) if s["id"] == "chan_a")
     assert "discovered" not in chan_a and chan_a["tier"] == "hot"
+
+
+def test_blind_spot_search_adds_scouted_channels_as_candidates(tmp_path):
+    """A hot blind cell becomes an Arabic query; the search hits join the candidate pool."""
+    save_sources(_seed(), KEY, tmp_path)
+    queries = []
+
+    def _search(q):
+        queries.append(q)
+        return ["scout_chan_" + str(len(queries))]
+
+    execute_run(tmp_path, KEY, _fetch, D1, budget=10, search=_search)
+    from collector.store.state_store import load_candidates
+    cand = load_candidates(KEY, tmp_path)
+    assert queries, "the map should have sent at least one scout to a blind spot"
+    assert any(h.startswith("scout_chan_") for h in cand), "scouted channels should be tracked"

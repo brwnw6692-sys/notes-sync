@@ -31,6 +31,15 @@ def _make_fetch(client):
     return fetch
 
 
+def _make_search(client):
+    from collector.sources.directory_search import parse_results, search_url
+
+    def search(query: str):
+        res = client.get(search_url(query))
+        return parse_results(res.text) if res.ok else []
+    return search
+
+
 def main(argv=None) -> int:
     from datetime import datetime, timezone
     argv = argv or sys.argv[1:]
@@ -40,7 +49,8 @@ def main(argv=None) -> int:
     client = PoliteClient(make_transport(), budget=CONFIG.telegram_req_budget,
                           min_delay=CONFIG.domain_delay_sec[1])
     now = datetime.now(timezone.utc)
-    metrics = execute_run(root, key, _make_fetch(client), now, budget=CONFIG.telegram_req_budget)
+    metrics = execute_run(root, key, _make_fetch(client), now, budget=CONFIG.telegram_req_budget,
+                          search=_make_search(client))
 
     check_tree(root)  # refuse to leave any non-encrypted file for the push
     print("run: " + " ".join(f"{k}={metrics[k]}" for k in sorted(metrics)))

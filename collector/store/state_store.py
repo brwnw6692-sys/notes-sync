@@ -10,6 +10,7 @@ from collector.store.crypto import decrypt, encrypt
 _STATE = "state.bin"
 _SOURCES = "sources.bin"
 _CANDIDATES = "candidates.bin"
+_SEARCHES = "searches.bin"
 _HEARTBEAT = "heartbeat.bin"
 _SHARDS = "shards"
 
@@ -51,6 +52,15 @@ def save_candidates(cand_state: dict, key: bytes, root: Path) -> None:
 
 def load_candidates(key: bytes, root: Path) -> dict:
     path = Path(root) / _CANDIDATES
+    return _read(path, key) if path.exists() else {}
+
+
+def save_searches(log: dict, key: bytes, root: Path) -> None:
+    _write(Path(root) / _SEARCHES, log, key)
+
+
+def load_searches(key: bytes, root: Path) -> dict:
+    path = Path(root) / _SEARCHES
     return _read(path, key) if path.exists() else {}
 
 

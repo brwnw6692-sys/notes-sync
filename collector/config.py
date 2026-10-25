@@ -31,6 +31,7 @@ class Config:
     discovery_blindspot_reserved: int = 5
     discovery_per_run: int = 3              # candidate pages actively sampled each run
     discovery_sample_keep: int = 12         # sample messages retained per candidate
+    discovery_searches_per_run: int = 2     # blind-spot directory searches each run
     discovery_default_region: str = "arab_world"
     retire_after_irrelevant_days: int = 14
     dead_after_consecutive_fails: int = 3

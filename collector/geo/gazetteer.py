@@ -51,7 +51,16 @@ class Gazetteer:
         return (best["lat"], best["lon"])
 
 
+def _gazetteer_path() -> Path:
+    return _FULL if _FULL.exists() else _SEED
+
+
 @lru_cache(maxsize=1)
 def default_gazetteer() -> Gazetteer:
-    path = _FULL if _FULL.exists() else _SEED
-    return Gazetteer(json.loads(path.read_text(encoding="utf-8")))
+    return Gazetteer(json.loads(_gazetteer_path().read_text(encoding="utf-8")))
+
+
+@lru_cache(maxsize=1)
+def gazetteer_entries() -> list:
+    """The raw place entries (id, names, lat, lon, population) — for reverse lookup by location."""
+    return json.loads(_gazetteer_path().read_text(encoding="utf-8"))
