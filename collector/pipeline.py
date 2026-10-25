@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from collector.core.orchestrator import run_once
-from collector.geo.snapshot import build_snapshot, save_snapshot
+from collector.geo.snapshot import build_snapshot, locate_rows, save_snapshot
 from collector.process.source_register import merge_runtime
 from collector.store import state_store
 
@@ -24,7 +24,8 @@ def execute_run(root: Path, key: bytes, fetch, now: datetime, budget: int) -> di
     state_store.prune_old_shards(root, now)
     state_store.write_heartbeat(key, root, now, result.metrics)
 
-    rows = [{"lat": it.lat, "lon": it.lon, "origin_cluster_id": it.origin_cluster_id,
-             "is_original": it.is_original} for it in result.items]
-    save_snapshot(build_snapshot(rows, now), key, root)
+    # The map reflects everything in the hot tier (last 7 days), not just this run's delta,
+    # and re-locates any item that has no coordinates with the current gazetteer.
+    recent = state_store.load_recent_items(key, root)
+    save_snapshot(build_snapshot(locate_rows(recent), now), key, root)
     return result.metrics

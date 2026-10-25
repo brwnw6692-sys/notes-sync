@@ -16,6 +16,24 @@ from collector.store.crypto import decrypt, encrypt
 _MAP = "map.bin"
 
 
+def locate_rows(items) -> list:
+    """Rows for the map from stored items. Items missing coords are re-located with the
+    current gazetteer, so improving the gazetteer heals older messages on the next run."""
+    from collector.geo.gazetteer import default_gazetteer
+    gaz = default_gazetteer()
+    rows = []
+    for it in items:
+        lat, lon = it.get("lat"), it.get("lon")
+        if lat is None or lon is None:
+            loc = gaz.primary_location(it.get("text_raw", "") or "")
+            if loc is not None:
+                lat, lon = loc
+        rows.append({"lat": lat, "lon": lon,
+                     "origin_cluster_id": it.get("origin_cluster_id"),
+                     "is_original": it.get("is_original", True)})
+    return rows
+
+
 def build_snapshot(items, now: datetime) -> dict:
     heat = build_heat()
     coverage = grid_coverage(items)
