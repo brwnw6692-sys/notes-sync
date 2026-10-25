@@ -1,0 +1,11 @@
+[
+  {"id": "gaza", "names": ["غزة", "غزه"], "lat": 31.50, "lon": 34.47, "population": 590000},
+  {"id": "khan_yunis", "names": ["خان يونس", "خانيونس"], "lat": 31.34, "lon": 34.30, "population": 200000},
+  {"id": "rafah", "names": ["رفح"], "lat": 31.29, "lon": 34.25, "population": 170000},
+  {"id": "beirut", "names": ["بيروت"], "lat": 33.89, "lon": 35.50, "population": 360000},
+  {"id": "nabatieh", "names": ["النبطية", "نبطية"], "lat": 33.38, "lon": 35.48, "population": 120000},
+  {"id": "damascus", "names": ["دمشق"], "lat": 33.51, "lon": 36.29, "population": 1700000},
+  {"id": "baghdad", "names": ["بغداد"], "lat": 33.31, "lon": 44.36, "population": 7000000},
+  {"id": "tehran", "names": ["طهران", "تهران"], "lat": 35.69, "lon": 51.39, "population": 8700000},
+  {"id": "sanaa", "names": ["صنعاء"], "lat": 15.37, "lon": 44.19, "population": 1900000}
+]

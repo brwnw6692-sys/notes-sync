@@ -14,6 +14,8 @@ class Item:
     text_norm: str = ""
     lang: str = ""
     target_audience: str = ""
+    lat: float | None = None
+    lon: float | None = None
     forwarded_from: str | None = None
     origin_cluster_id: str | None = None
     is_original: bool = True
