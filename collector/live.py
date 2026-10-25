@@ -19,17 +19,23 @@ from collector.store.guard import check_tree
 
 def load_data_key() -> bytes:
     import os
-    raw = os.environ.get("DATA_KEY", "").strip()  # paste often carries a trailing newline
+    # A pasted secret can pick up whitespace anywhere (a wrapped textarea adds a newline mid-value),
+    # so drop all whitespace, then accept either standard or url-safe base64.
+    raw = "".join(os.environ.get("DATA_KEY", "").split())
     if not raw:
         print("DATA_KEY missing", file=sys.stderr)
         raise SystemExit(2)
-    try:
-        key = base64.b64decode(raw, validate=True)
-    except (binascii.Error, ValueError):
-        print("DATA_KEY not valid base64", file=sys.stderr)
-        raise SystemExit(2)
-    if len(key) != 32:
-        print("DATA_KEY must be 32 bytes", file=sys.stderr)
+    key = None
+    for decoder in (base64.b64decode, base64.urlsafe_b64decode):
+        try:
+            candidate = decoder(raw)
+        except (binascii.Error, ValueError):
+            continue
+        if len(candidate) == 32:
+            key = candidate
+            break
+    if key is None:
+        print("DATA_KEY not a valid 32-byte base64 key", file=sys.stderr)
         raise SystemExit(2)
     return key
 
