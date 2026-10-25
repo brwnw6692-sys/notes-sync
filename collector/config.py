@@ -20,6 +20,8 @@ class Config:
     hot_tier_min_originality: float = 0.3   # RETUNE
     silence_factor: int = 4                 # RETUNE
     silence_floor_hours: int = 3
+    # Rhythm-aware silence: zero posts when >= this many were expected. Poisson P(0 | 4) ~= 1.8%.
+    silence_min_expected_posts: float = 4.0  # RETUNE
     hot_items_retention_days: int = 7
     vet_min_arabic_persian: float = 0.6     # RETUNE
     vet_min_place_mentions: float = 0.2     # RETUNE
