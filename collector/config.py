@@ -29,6 +29,8 @@ class Config:
     discovery_blindspot_reserved: int = 5
     retire_after_irrelevant_days: int = 14
     dead_after_consecutive_fails: int = 3
+    canary_max_silence_hours: float = 2.0   # RETUNE
+    canary_blind_fraction: float = 0.5      # RETUNE
 
 
 CONFIG = Config()
