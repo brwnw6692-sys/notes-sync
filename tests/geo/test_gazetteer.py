@@ -38,6 +38,13 @@ def test_no_place_returns_empty():
     assert _g().tag_places("اجتماع اقتصادي اليوم") == []
 
 
+def test_matches_name_with_an_attached_prefix():
+    # Prepositions/article attach to the word in Arabic/Hebrew, so the boundary match
+    # must still fire: و+بيروت and ب+غزة.
+    assert _g().tag_places("انفجار وبيروت الليلة")[0]["id"] == "beirut"
+    assert _g().tag_places("قصف بغزة")[0]["id"] == "gaza"
+
+
 def test_does_not_match_inside_a_larger_word():
     # "النصر" as a standalone place must not fire inside "الانتصار"
     assert _g().tag_places("تحقق الانتصار الكبير") == []

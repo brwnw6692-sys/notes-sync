@@ -12,6 +12,10 @@ from collector.process.normalize import normalize_text
 
 _MIN_NAME_CHARS = 3
 _SEED = Path(__file__).parent / "gazetteer_seed.json"
+_FULL = Path(__file__).parent / "gazetteer.json"
+# Hebrew and Arabic attach prepositions/articles directly to a word (בדמשק, وبيروت, الموصل),
+# so allow up to a few of these prefix letters between the word boundary and the place name.
+_PREFIX = "בהוכלמש" + "وفبكل"
 
 
 class Gazetteer:
@@ -24,8 +28,9 @@ class Gazetteer:
                 norm = normalize_text(name)
                 if len(norm) < _MIN_NAME_CHARS:
                     continue
-                # (?<!\w) / (?!\w) keep a name from matching inside a longer word.
-                pat = re.compile(r"(?<!\w)" + re.escape(norm) + r"(?!\w)")
+                # Anchor at a word boundary, allow a short prefix cluster (prepositions/article),
+                # and a trailing boundary so a name never fires inside a longer word.
+                pat = re.compile(r"(?<!\w)[" + _PREFIX + r"]{0,3}" + re.escape(norm) + r"(?!\w)")
                 self._patterns.append((pat, e["id"]))
 
     def tag_places(self, text: str) -> list:
@@ -48,4 +53,5 @@ class Gazetteer:
 
 @lru_cache(maxsize=1)
 def default_gazetteer() -> Gazetteer:
-    return Gazetteer(json.loads(_SEED.read_text(encoding="utf-8")))
+    path = _FULL if _FULL.exists() else _SEED
+    return Gazetteer(json.loads(path.read_text(encoding="utf-8")))
