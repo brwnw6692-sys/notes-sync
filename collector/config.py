@@ -34,6 +34,8 @@ class Config:
     canary_max_silence_hours: float = 2.0   # RETUNE
     canary_blind_fraction: float = 0.5      # RETUNE
     rhythm_min_posts: int = 50              # RETUNE
+    quarantine_max_per_source: int = 3
+    quarantine_max_total: int = 50
     rhythm_active_ratio: float = 1.0        # active = share >= ratio x uniform (1/24); RETUNE
 
 
