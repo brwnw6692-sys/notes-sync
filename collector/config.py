@@ -44,6 +44,10 @@ class Config:
     grid_cell_deg: float = 0.5             # RETUNE
     heat_sigma_km: float = 60.0            # city heat falloff radius; RETUNE
     coverage_hot_weight: float = 0.5       # a cell counts as "hot" above this weight; RETUNE
+    # Adaptive resolution: refine a cell into sub-cells only where activity is dense.
+    adaptive_factor: int = 5               # each level divides a cell into factor x factor
+    adaptive_max_level: int = 3            # 0.5 -> 0.1 -> 0.02 -> 0.004 deg (~440 m, village)
+    adaptive_split_threshold: int = 8      # items in a cell before it refines; RETUNE
     rhythm_active_ratio: float = 1.0        # active = share >= ratio x uniform (1/24); RETUNE
 
 
