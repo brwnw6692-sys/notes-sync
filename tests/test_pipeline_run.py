@@ -37,6 +37,8 @@ def test_run_persists_state_items_and_heartbeat(tmp_path):
     assert len(load_recent_items(KEY, tmp_path)) == 1
     assert read_heartbeat(KEY, tmp_path)["last_run_at"] == NOW.isoformat()
     assert metrics["items"] == 1
+    from collector.geo.snapshot import load_snapshot
+    assert load_snapshot(KEY, tmp_path)["generated_at"] == NOW.isoformat()
 
 
 def test_run_output_passes_the_guard(tmp_path):

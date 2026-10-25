@@ -13,6 +13,8 @@ def grid_coverage(items) -> dict:
     for it in items:
         if not it.get("is_original"):
             continue
+        if it.get("lat") is None or it.get("lon") is None:
+            continue
         rc = cell_of(it["lat"], it["lon"])
         if rc is None:
             continue
