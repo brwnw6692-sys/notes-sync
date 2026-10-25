@@ -37,7 +37,17 @@ def test_delay_is_applied_between_calls_to_same_host():
     c, sleeps = _client(t, min_delay=0.5)
     c.get("https://t.me/s/one")
     c.get("https://t.me/s/two")
-    assert any(s >= 0.5 for s in sleeps)
+    # A positive pace wait happened, and it never exceeds the configured delay.
+    # (It is slightly under 0.5 because some time elapses between the two calls.)
+    pace_waits = [s for s in sleeps if s > 0]
+    assert pace_waits and max(pace_waits) <= 0.5
+
+
+def test_first_call_to_a_host_is_not_delayed():
+    t = FakeTransport([(200, "a")])
+    c, sleeps = _client(t, min_delay=0.5)
+    c.get("https://t.me/s/one")
+    assert all(s <= 0 for s in sleeps) or sleeps == []
 
 
 def test_429_backs_off_and_retries_then_succeeds():
