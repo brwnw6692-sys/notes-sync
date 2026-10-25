@@ -44,6 +44,21 @@ def test_budget_caps_selection_with_red_first_then_hot_and_reports_overflow():
     assert overflow == ["h2"]
 
 
+def test_quiet_source_in_its_active_hours_is_due_every_run():
+    srcs = [_s("q1")]
+    for run in range(6):
+        sel, _ = plan_run(srcs, run_index=run, minutes=10, red_regions=set(), budget=10, active_now={"q1"})
+        assert _ids(sel) == ["q1"]
+
+
+def test_active_now_ranks_after_red_and_hot_before_regular_quiet():
+    srcs = [_s("q_active"), _s("h1", "hot"), _s("r1", region="r_red")]
+    sel, overflow = plan_run(srcs, run_index=0, minutes=10, red_regions={"r_red"}, budget=2,
+                             active_now={"q_active"})
+    assert _ids(sel) == ["r1", "h1"]
+    assert overflow == ["q_active"]
+
+
 def test_backlog_goes_first_next_run():
     srcs = [_s("h1", "hot"), _s("h2", "hot")]
     sel, _ = plan_run(srcs, run_index=2, minutes=10, red_regions=set(), budget=1, backlog=["h2"])

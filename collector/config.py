@@ -31,6 +31,8 @@ class Config:
     dead_after_consecutive_fails: int = 3
     canary_max_silence_hours: float = 2.0   # RETUNE
     canary_blind_fraction: float = 0.5      # RETUNE
+    rhythm_min_posts: int = 50              # RETUNE
+    rhythm_active_ratio: float = 1.0        # active = share >= ratio x uniform (1/24); RETUNE
 
 
 CONFIG = Config()
