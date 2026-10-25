@@ -13,14 +13,20 @@ def _clean(handle: str) -> str:
     return handle.lstrip("@").lower()
 
 
+def _field(it, name):
+    """Read a field from an Item object or a stored item dict alike."""
+    return it.get(name) if isinstance(it, dict) else getattr(it, name, None)
+
+
 def extract_candidates(items, known) -> set:
     """Channel handles referenced by these items that we don't already follow."""
     known_lc = {_clean(k) for k in known}
     found = set()
     for it in items:
-        if it.forwarded_from:
-            found.add(_clean(it.forwarded_from))
-        text = it.text_raw or ""
+        fwd = _field(it, "forwarded_from")
+        if fwd:
+            found.add(_clean(fwd))
+        text = _field(it, "text_raw") or ""
         for m in _TME.findall(text):
             found.add(m.lower())
         for m in _MENTION.findall(text):

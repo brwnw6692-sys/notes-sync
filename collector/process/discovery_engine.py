@@ -5,7 +5,7 @@ only: fold new references into a candidate store, choose who to sample next (bli
 each sample over time, and read off the candidates that have earned a place in the registry.
 """
 from collector.config import CONFIG
-from collector.process.discovery import extract_candidates
+from collector.process.discovery import _field, extract_candidates
 from collector.process.vetting import rank_candidates, vet_candidate
 
 
@@ -21,7 +21,7 @@ def candidate_regions(items, sources) -> dict:
     out: dict = {}
     for it in items:
         for h in extract_candidates([it], known):
-            out.setdefault(h, set()).add(region_of.get(it.source_id, ""))
+            out.setdefault(h, set()).add(region_of.get(_field(it, "source_id"), ""))
     return out
 
 

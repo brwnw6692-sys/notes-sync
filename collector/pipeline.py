@@ -58,5 +58,6 @@ def execute_run(root: Path, key: bytes, fetch, now: datetime, budget: int) -> di
     recent = state_store.load_recent_items(key, root)
     save_snapshot(build_snapshot(locate_rows(recent), now), key, root)
 
-    result.metrics.update(_discover(root, key, fetch, result.items, state["sources"], now))
+    # Mine the whole hot tier for references, not just this run's delta (most runs fetch nothing new).
+    result.metrics.update(_discover(root, key, fetch, recent, state["sources"], now))
     return result.metrics
