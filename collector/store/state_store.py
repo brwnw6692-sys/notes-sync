@@ -9,6 +9,7 @@ from collector.store.crypto import decrypt, encrypt
 
 _STATE = "state.bin"
 _SOURCES = "sources.bin"
+_CANDIDATES = "candidates.bin"
 _HEARTBEAT = "heartbeat.bin"
 _SHARDS = "shards"
 
@@ -42,6 +43,15 @@ def save_sources(sources, key: bytes, root: Path) -> None:
 def load_sources(key: bytes, root: Path) -> list:
     path = Path(root) / _SOURCES
     return _read(path, key) if path.exists() else []
+
+
+def save_candidates(cand_state: dict, key: bytes, root: Path) -> None:
+    _write(Path(root) / _CANDIDATES, cand_state, key)
+
+
+def load_candidates(key: bytes, root: Path) -> dict:
+    path = Path(root) / _CANDIDATES
+    return _read(path, key) if path.exists() else {}
 
 
 def save_items(items, key: bytes, root: Path, now: datetime) -> Path:

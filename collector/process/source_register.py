@@ -9,12 +9,19 @@ def _norm(handle: str) -> str:
     return handle.lstrip("@").lower()
 
 
-def add_source(sources, handle, region, tier="quiet", canary=False):
-    """Add or update a source. Idempotent by normalized handle. Returns a new list."""
+def add_source(sources, handle, region, tier="quiet", canary=False, discovered=False):
+    """Add or update a source. Idempotent by normalized handle. Returns a new list.
+    discovered=True marks a channel the discovery engine found, so it is distinguishable from
+    the user's own seeds — and a re-add never clobbers a handle the user already curates."""
     sid = _norm(handle)
     if not _HANDLE.match(sid):
         raise ValueError(f"invalid channel handle: {handle!r}")
+    existing = next((s for s in sources if s["id"] == sid), None)
+    if existing is not None and discovered:
+        return [dict(s) for s in sources]        # never overwrite a curated source with a discovery
     entry = {"id": sid, "region": region, "tier": tier, "status": "active", "canary": bool(canary)}
+    if discovered:
+        entry["discovered"] = True
     out = [dict(s) for s in sources if s["id"] != sid]
     out.append(entry)
     return out
