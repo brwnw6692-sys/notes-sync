@@ -19,7 +19,7 @@ from collector.store.guard import check_tree
 
 def load_data_key() -> bytes:
     import os
-    raw = os.environ.get("DATA_KEY", "")
+    raw = os.environ.get("DATA_KEY", "").strip()  # paste often carries a trailing newline
     if not raw:
         print("DATA_KEY missing", file=sys.stderr)
         raise SystemExit(2)
