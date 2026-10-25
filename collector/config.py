@@ -48,6 +48,9 @@ class Config:
     adaptive_factor: int = 5               # each level divides a cell into factor x factor
     adaptive_max_level: int = 3            # 0.5 -> 0.1 -> 0.02 -> 0.004 deg (~440 m, village)
     adaptive_split_threshold: int = 8      # items in a cell before it refines; RETUNE
+    # Located messages carry a precise city coordinate, so draw active cells fine (city scale,
+    # ~2 km at level 2) rather than binning them into coarse 55 km cells.
+    active_display_level: int = 2          # RETUNE
     rhythm_active_ratio: float = 1.0        # active = share >= ratio x uniform (1/24); RETUNE
 
 

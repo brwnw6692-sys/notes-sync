@@ -7,8 +7,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from collector.geo.adaptive import adaptive_cells
-from collector.geo.grid import center_of
+from collector.config import CONFIG
+from collector.geo.adaptive import cell_at, center_at
+from collector.geo.grid import center_of, in_bounds
 from collector.geo.grid_coverage import blind_cells, coverage_summary, grid_coverage
 from collector.geo.heat import build_heat, cell_weight
 from collector.store.crypto import decrypt, encrypt
@@ -38,12 +39,22 @@ def build_snapshot(items, now: datetime) -> dict:
     heat = build_heat()
     coverage = grid_coverage(items)
 
+    # Bin located messages at city scale; count independent sources (distinct origin clusters).
+    level = CONFIG.active_display_level
+    buckets = {}
+    for it in items:
+        lat, lon = it.get("lat"), it.get("lon")
+        if lat is None or lon is None or not in_bounds(lat, lon):
+            continue
+        buckets.setdefault(cell_at(lat, lon, level), set()).add(
+            it.get("origin_cluster_id") if it.get("is_original") else None)
     active = []
-    for cell in adaptive_cells(items):
+    for rc, clusters in buckets.items():
+        clat, clon = center_at(rc)
         active.append({
-            "lat": round(cell["lat"], 4), "lon": round(cell["lon"], 4),
-            "level": cell["level"], "count": cell["count"],
-            "heat": round(cell_weight((cell["lat"], cell["lon"])), 3),
+            "lat": round(clat, 4), "lon": round(clon, 4),
+            "level": level, "count": len([c for c in clusters if c is not None]) or len(clusters),
+            "heat": round(cell_weight((clat, clon)), 3),
         })
 
     blind = []
