@@ -9,8 +9,8 @@ const BASE_DEG = 0.5, FACTOR = 5;           // must match collector config
 const PBKDF2_ROUNDS = 600000;
 
 const map = L.map("map", { zoomControl: true }).setView([31.5, 40.0], 5);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-  attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: "abcd", maxZoom: 19,
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: '&copy; OpenStreetMap', maxZoom: 19, className: "basemap-dark",
 }).addTo(map);
 
 let layer = L.layerGroup().addTo(map);
