@@ -7,13 +7,20 @@
 const REPO = "brwnw6692-sys/notes-sync";
 const BASE_DEG = 0.5, FACTOR = 5;           // must match collector config
 const PBKDF2_ROUNDS = 600000;
+// The area we listen to (must match collector grid bounds): the whole Middle East, incl. all Turkey.
+const AOI = [[12.0, 25.0], [42.5, 64.0]];   // [[latMin,lonMin],[latMax,lonMax]]
 
-const map = L.map("map", { zoomControl: true }).setView([31.5, 40.0], 5);
+const map = L.map("map", { zoomControl: true });
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; OpenStreetMap', maxZoom: 19, className: "basemap-dark",
 }).addTo(map);
+map.fitBounds(AOI, { padding: [10, 10] });
+// The perimeter: a clear line showing exactly how far the system listens.
+L.rectangle(AOI, { color: "#39b0b8", weight: 1.5, fill: false, dashArray: "2 4", interactive: false }).addTo(map);
 
-let layer = L.layerGroup().addTo(map);
+const events = L.layerGroup().addTo(map);   // where something is happening (foreground)
+const gaps = L.layerGroup();                 // unwatched hot cells (behind a toggle)
+let lastSnap = null;
 const $ = (id) => document.getElementById(id);
 
 function heatColor(t) {              // 0..1 -> blue(calm) .. red(hot)
@@ -24,29 +31,45 @@ function heatColor(t) {              // 0..1 -> blue(calm) .. red(hot)
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-function cellSizeDeg(level) { return BASE_DEG / Math.pow(FACTOR, level); }
+function drawEvents(snap) {
+  events.clearLayers();
+  // Foreground: where something is happening. Each report cluster glows — bigger and brighter
+  // with more independent sources — so the eye goes straight to the action.
+  const maxCount = Math.max(1, ...snap.active.map((c) => c.count));
+  for (const c of snap.active) {
+    const r = 5 + 9 * Math.sqrt(c.count / maxCount);
+    const col = heatColor(0.45 + 0.55 * (c.count / maxCount));
+    L.circleMarker([c.lat, c.lon], {                       // soft halo = the glow
+      radius: r + 7, stroke: false, fillColor: col, fillOpacity: 0.18,
+    }).addTo(events);
+    L.circleMarker([c.lat, c.lon], {                       // bright core
+      radius: r, color: "#fff", weight: 1, fillColor: col, fillOpacity: 0.9,
+    }).bindTooltip(`${c.count} independent source${c.count > 1 ? "s" : ""} reporting here`).addTo(events);
+  }
+}
+
+function drawGaps(snap) {
+  gaps.clearLayers();
+  // Quiet background: hot, populated cells we have no eyes on yet. Only when the viewer asks.
+  const s = BASE_DEG / 2;
+  for (const c of snap.blind) {
+    L.rectangle([[c.lat - s, c.lon - s], [c.lat + s, c.lon + s]], {
+      stroke: false, fillColor: "#c22e2e", fillOpacity: 0.12,
+    }).addTo(gaps);
+  }
+}
 
 function draw(snap) {
-  layer.clearLayers();
-  const maxHeat = Math.max(1, ...snap.active.map((c) => c.heat), ...snap.blind.map((c) => c.heat));
-  for (const c of snap.active) {
-    const s = cellSizeDeg(c.level) / 2;
-    L.rectangle([[c.lat - s, c.lon - s], [c.lat + s, c.lon + s]], {
-      stroke: false, fillColor: heatColor(c.heat / maxHeat),
-      fillOpacity: 0.28 + 0.4 * Math.min(1, c.count / 10),
-    }).bindTooltip(`level ${c.level} · ${c.count} reports`).addTo(layer);
-  }
-  for (const c of snap.blind) {
-    const s = BASE_DEG / 2;
-    L.rectangle([[c.lat - s, c.lon - s], [c.lat + s, c.lon + s]], {
-      color: "#c22e2e", weight: 1, dashArray: "4 3", fill: false,
-    }).bindTooltip("blind spot: hot area, no sources").addTo(layer);
-  }
+  lastSnap = snap;
+  drawEvents(snap);
+  if (map.hasLayer(gaps)) drawGaps(snap);
   const age = Math.max(0, Math.round((Date.now() - new Date(snap.generated_at)) / 60000));
+  const headline = snap.active.length
+    ? `<b>${snap.active.length}</b> place${snap.active.length > 1 ? "s" : ""} active now`
+    : `No activity located yet`;
   $("status").innerHTML =
-    `Coverage of the hot core: <b>${snap.coverage_pct}%</b> ` +
-    `(${snap.covered_hot_cells}/${snap.hot_cells} cells). ` +
-    `${snap.active.length} active, ${snap.blind.length} blind. ` +
+    `${headline}. Watching <b>${snap.covered_hot_cells}</b> of ${snap.hot_cells} populated cells ` +
+    `(${snap.blind.length} still unwatched). ` +
     (age > 60 ? `<span style="color:#d85a30">updated ${age} min ago</span>` : `updated ${age} min ago`);
 }
 
@@ -114,3 +137,7 @@ function demo() {
 $("go").onclick = () => loadLive($("pass").value);
 $("pass").addEventListener("keydown", (e) => { if (e.key === "Enter") loadLive($("pass").value); });
 $("demo").onclick = demo;
+$("toggleBlind").addEventListener("change", (e) => {
+  if (e.target.checked) { map.addLayer(gaps); if (lastSnap) drawGaps(lastSnap); }
+  else { map.removeLayer(gaps); }
+});

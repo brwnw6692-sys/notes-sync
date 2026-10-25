@@ -29,6 +29,8 @@
   .legend .ends { display: flex; justify-content: space-between; color: #9fb3c2; }
   .legend .blind { display: inline-block; width: 11px; height: 11px; border: 2px dashed #c22e2e;
                    border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+  .legend .frame { display: inline-block; width: 11px; height: 11px; border: 1.5px solid #39b0b8;
+                   border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
 </style>
 </head>
 <body>
@@ -43,13 +45,16 @@
   <div id="status">Enter the passphrase to load live data, or press Demo to preview.</div>
 </div>
 <div class="legend">
-  <div>Activity heat</div>
+  <div>Where something is happening</div>
   <div class="bar"></div>
-  <div class="ends"><span>calm</span><span>hot</span></div>
-  <div style="margin-top:6px"><span class="blind"></span>blind spot (hot, unseen)</div>
+  <div class="ends"><span>quiet</span><span>intense</span></div>
+  <div style="margin-top:7px"><span class="frame"></span>area we listen to</div>
+  <label style="display:flex;gap:6px;align-items:center;margin-top:7px;cursor:pointer">
+    <input id="toggleBlind" type="checkbox"> <span><span class="blind"></span>show gaps (unwatched)</span>
+  </label>
 </div>
 
 <script src="vendor/leaflet/leaflet.min.js"></script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
