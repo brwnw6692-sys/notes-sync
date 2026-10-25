@@ -8,6 +8,7 @@ from collector.config import CONFIG
 from collector.store.crypto import decrypt, encrypt
 
 _STATE = "state.bin"
+_SOURCES = "sources.bin"
 _HEARTBEAT = "heartbeat.bin"
 _SHARDS = "shards"
 
@@ -32,6 +33,15 @@ def save_state(state: dict, key: bytes, root: Path) -> None:
 def load_state(key: bytes, root: Path) -> dict:
     path = Path(root) / _STATE
     return _read(path, key) if path.exists() else default_state()
+
+
+def save_sources(sources, key: bytes, root: Path) -> None:
+    _write(Path(root) / _SOURCES, sources, key)
+
+
+def load_sources(key: bytes, root: Path) -> list:
+    path = Path(root) / _SOURCES
+    return _read(path, key) if path.exists() else []
 
 
 def save_items(items, key: bytes, root: Path, now: datetime) -> Path:

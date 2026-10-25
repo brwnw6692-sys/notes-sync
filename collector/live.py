@@ -3,12 +3,11 @@
 Usage: python -m collector.live <data_dir>
 Only numbers reach stdout. Actions logs are public, so no source names or content are printed.
 """
-import base64
-import binascii
 import sys
 from pathlib import Path
 
 from collector.config import CONFIG
+from collector.keys import parse_key
 from collector.core.contract import Cursor
 from collector.net.client import PoliteClient
 from collector.net.http import make_transport
@@ -19,23 +18,9 @@ from collector.store.guard import check_tree
 
 def load_data_key() -> bytes:
     import os
-    # A pasted secret can pick up whitespace anywhere (a wrapped textarea adds a newline mid-value),
-    # so drop all whitespace, then accept either standard or url-safe base64.
-    raw = "".join(os.environ.get("DATA_KEY", "").split())
-    if not raw:
-        print("DATA_KEY missing", file=sys.stderr)
-        raise SystemExit(2)
-    key = None
-    for decoder in (base64.b64decode, base64.urlsafe_b64decode):
-        try:
-            candidate = decoder(raw)
-        except (binascii.Error, ValueError):
-            continue
-        if len(candidate) == 32:
-            key = candidate
-            break
+    key = parse_key(os.environ.get("DATA_KEY", ""))
     if key is None:
-        print("DATA_KEY not a valid 32-byte base64 key", file=sys.stderr)
+        print("DATA_KEY missing or not a valid 32-byte base64 key", file=sys.stderr)
         raise SystemExit(2)
     return key
 
