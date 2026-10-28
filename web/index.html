@@ -31,6 +31,13 @@
                    border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
   .legend .frame { display: inline-block; width: 11px; height: 11px; border: 1.5px solid #39b0b8;
                    border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+  #info { position: absolute; z-index: 1000; bottom: 14px; right: 12px; display: none; max-width: 300px;
+          background: rgba(14,20,28,.95); border: 1px solid #22303c; border-radius: 10px;
+          padding: 10px 12px; font-size: 13px; line-height: 1.6; }
+  #info .il { margin: 2px 0; }
+  #info .dim { color: #7f93a2; font-size: 11px; }
+  #info #infoClose { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: #9fb3c2;
+                     font-size: 16px; cursor: pointer; padding: 0; }
 </style>
 </head>
 <body>
@@ -44,6 +51,7 @@
   </div>
   <div id="status">Enter the passphrase to load live data, or press Demo to preview.</div>
 </div>
+<div id="info"></div>
 <div class="legend">
   <div>Where something is happening</div>
   <div class="bar"></div>
@@ -61,6 +69,6 @@
 </div>
 
 <script src="vendor/leaflet/leaflet.min.js"></script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

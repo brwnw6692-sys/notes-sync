@@ -4,7 +4,7 @@ It carries only geometry and numbers (cell centers, levels, counts, heat, covera
 name or a source name — so even decrypted it reveals a heat picture, not who we watch.
 """
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from collector.config import CONFIG
@@ -31,29 +31,52 @@ def locate_rows(items) -> list:
                 lat, lon = loc
         rows.append({"lat": lat, "lon": lon,
                      "origin_cluster_id": it.get("origin_cluster_id"),
-                     "is_original": it.get("is_original", True)})
+                     "is_original": it.get("is_original", True),
+                     "posted_at": it.get("posted_at", "")})
     return rows
+
+
+def _age_hours(posted_at, now):
+    """Hours between a message's timestamp and now; None if it can't be parsed."""
+    try:
+        t = datetime.fromisoformat((posted_at or "").replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    n = now if now.tzinfo else now.replace(tzinfo=timezone.utc)
+    return (n - t).total_seconds() / 3600
 
 
 def build_snapshot(items, now: datetime) -> dict:
     heat = build_heat()
     coverage = grid_coverage(items)
 
-    # Bin located messages at city scale; count independent sources (distinct origin clusters).
+    # Bin located messages at city scale; count independent sources (distinct origin clusters),
+    # and separately those from the recent window, so the map can show what is hot *now*.
     level = CONFIG.active_display_level
+    recent_h = CONFIG.recent_activity_hours
     buckets = {}
     for it in items:
         lat, lon = it.get("lat"), it.get("lon")
         if lat is None or lon is None or not in_bounds(lat, lon):
             continue
-        buckets.setdefault(cell_at(lat, lon, level), set()).add(
-            it.get("origin_cluster_id") if it.get("is_original") else None)
+        cid = it.get("origin_cluster_id") if it.get("is_original") else None
+        b = buckets.setdefault(cell_at(lat, lon, level), {"all": set(), "recent": set()})
+        b["all"].add(cid)
+        age = _age_hours(it.get("posted_at"), now)
+        if age is not None and 0 <= age <= recent_h:
+            b["recent"].add(cid)
+
+    def _n(clusters):
+        return len([c for c in clusters if c is not None]) or len(clusters)
+
     active = []
-    for rc, clusters in buckets.items():
+    for rc, b in buckets.items():
         clat, clon = center_at(rc)
         active.append({
-            "lat": round(clat, 4), "lon": round(clon, 4),
-            "level": level, "count": len([c for c in clusters if c is not None]) or len(clusters),
+            "lat": round(clat, 4), "lon": round(clon, 4), "level": level,
+            "count": _n(b["all"]), "recent": _n(b["recent"]) if b["recent"] else 0,
             "heat": round(cell_weight((clat, clon)), 3),
         })
 

@@ -34,22 +34,25 @@ function groupColor(name) {                  // a stable color per ethnic/sect g
   return `hsl(${h},58%,55%)`;
 }
 
+// Fetch the peoples data at startup so a clicked event can be placed even before the layer is shown.
+fetch("data/ethnic.geojson").then((r) => r.json()).then((gj) => { ethnicData = gj; }).catch(() => {});
+
 function loadPeoples() {
-  if (peoplesLoaded) return;
+  if (peoplesLoaded || !ethnicData) return;
   peoplesLoaded = true;
-  fetch("data/ethnic.geojson").then((r) => r.json()).then((gj) => {
-    L.geoJSON(gj, {
-      pane: "peoplesPane",
-      style: (f) => ({ color: groupColor(f.properties.group), weight: 0.5, opacity: 0.4,
-        fillColor: groupColor(f.properties.group),
-        fillOpacity: f.properties.type === "Statewide" ? 0.1 : 0.3 }),
-      onEachFeature: (f, lyr) => lyr.bindTooltip(`${f.properties.group} · ${f.properties.country}`, { sticky: true }),
-    }).addTo(peoples);
-  }).catch(() => {});
+  L.geoJSON(ethnicData, {
+    pane: "peoplesPane",
+    style: (f) => ({ color: groupColor(f.properties.group), weight: 0.5, opacity: 0.4,
+      fillColor: groupColor(f.properties.group),
+      fillOpacity: f.properties.type === "Statewide" ? 0.1 : 0.3 }),
+    onEachFeature: (f, lyr) => lyr.bindTooltip(`${f.properties.group} · ${f.properties.country}`, { sticky: true }),
+  }).addTo(peoples);
 }
 
 // The administrative canvas: country -> province, so every event has a place in a known structure.
+let adminData = null, ethnicData = null;
 fetch("data/admin1.geojson").then((r) => r.json()).then((gj) => {
+  adminData = gj;
   L.geoJSON(gj, {
     style: { color: "#3c6e77", weight: 0.6, opacity: 0.65, fill: false },
     onEachFeature: (f, lyr) => {
@@ -58,6 +61,44 @@ fetch("data/admin1.geojson").then((r) => r.json()).then((gj) => {
     },
   }).addTo(borders);
 }).catch(() => {});
+
+// Point-in-polygon (ray casting) so a clicked event can be placed in the knowledge layers.
+function inRing(lon, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+function inPoly(lon, lat, geom) {
+  const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  for (const poly of polys) {
+    if (inRing(lon, lat, poly[0]) && !poly.slice(1).some((h) => inRing(lon, lat, h))) return true;
+  }
+  return false;
+}
+function knowledgeAt(lat, lon) {
+  let province = null, country = null;
+  if (adminData) for (const f of adminData.features) {
+    if (inPoly(lon, lat, f.geometry)) { province = f.properties.name_ar || f.properties.name; country = f.properties.country; break; }
+  }
+  const peoples = [];
+  if (ethnicData) for (const f of ethnicData.features) if (inPoly(lon, lat, f.geometry)) peoples.push(f.properties.group);
+  return { province, country, peoples };
+}
+function showInfo(c) {
+  const k = knowledgeAt(c.lat, c.lon);
+  const where = k.province ? `${k.province}${k.country ? " · " + k.country : ""}` : "unknown area";
+  const who = k.peoples.length ? k.peoples.join(", ") : "—";
+  $("info").innerHTML =
+    `<button id="infoClose">×</button>` +
+    `<div class="il">📍 <b>${where}</b></div>` +
+    `<div class="il">👥 ${who} <span class="dim">· background, GeoEPR 2021</span></div>` +
+    `<div class="il">🔴 <b>${c.recent || 0}</b> reports in last 48h · ${c.count} this week</div>`;
+  $("info").style.display = "block";
+  $("infoClose").onclick = () => { $("info").style.display = "none"; };
+}
 
 function heatColor(t) {              // 0..1 -> blue(calm) .. red(hot)
   const stops = [[42,111,176],[216,177,47],[216,90,48],[194,46,46]];
@@ -69,18 +110,21 @@ function heatColor(t) {              // 0..1 -> blue(calm) .. red(hot)
 
 function drawEvents(snap) {
   events.clearLayers();
-  // Foreground: where something is happening. Each report cluster glows — bigger and brighter
-  // with more independent sources — so the eye goes straight to the action.
-  const maxCount = Math.max(1, ...snap.active.map((c) => c.count));
+  // Foreground: where something is happening *now*. Glow is driven by recent activity, so a fresh
+  // hotspot burns bright while a place that was only busy last week fades to a dim, cold dot.
+  const maxRecent = Math.max(1, ...snap.active.map((c) => c.recent || 0));
   for (const c of snap.active) {
-    const r = 5 + 9 * Math.sqrt(c.count / maxCount);
-    const col = heatColor(0.45 + 0.55 * (c.count / maxCount));
-    L.circleMarker([c.lat, c.lon], {                       // soft halo = the glow
-      radius: r + 7, stroke: false, fillColor: col, fillOpacity: 0.18,
+    const now = c.recent || 0;
+    const t = now ? now / maxRecent : 0;
+    const r = 5 + 9 * Math.sqrt(now ? t : 0.12);
+    const col = now ? heatColor(0.5 + 0.5 * t) : "#5b6b78";   // cold grey if nothing recent
+    L.circleMarker([c.lat, c.lon], {
+      radius: r + 7, stroke: false, fillColor: col, fillOpacity: now ? 0.18 : 0.08,
     }).addTo(events);
-    L.circleMarker([c.lat, c.lon], {                       // bright core
-      radius: r, color: "#fff", weight: 1, fillColor: col, fillOpacity: 0.9,
-    }).bindTooltip(`${c.count} independent source${c.count > 1 ? "s" : ""} reporting here`).addTo(events);
+    const core = L.circleMarker([c.lat, c.lon], {
+      radius: r, color: "#fff", weight: 1, fillColor: col, fillOpacity: now ? 0.9 : 0.5,
+    }).bindTooltip(`${now} in last 48h · ${c.count} this week — click for details`).addTo(events);
+    core.on("click", () => showInfo(c));
   }
 }
 
@@ -162,8 +206,8 @@ async function loadLive(passphrase) {
 
 function demo() {
   const cells = [];
-  for (const [lat, lon, lvl, n] of [[31.5,34.47,3,40],[33.89,35.5,2,18],[35.69,51.39,1,9],[33.31,44.36,2,22]])
-    cells.push({ lat, lon, level: lvl, count: n, heat: 6 + Math.random() * 4 });
+  for (const [lat, lon, lvl, n, rec] of [[31.5,34.47,3,40,22],[33.89,35.5,2,18,3],[35.69,51.39,1,9,0],[33.31,44.36,2,22,11]])
+    cells.push({ lat, lon, level: lvl, count: n, recent: rec, heat: 6 + Math.random() * 4 });
   draw({ generated_at: new Date().toISOString(), coverage_pct: 37, hot_cells: 295,
          covered_hot_cells: 109, active: cells,
          blind: [{ lat: 36.2, lon: 37.16, heat: 7 }, { lat: 15.37, lon: 44.19, heat: 7 }] });
@@ -181,5 +225,8 @@ $("toggleBorders").addEventListener("change", (e) => {
   if (e.target.checked) map.addLayer(borders); else map.removeLayer(borders);
 });
 $("togglePeoples").addEventListener("change", (e) => {
-  if (e.target.checked) { loadPeoples(); map.addLayer(peoples); } else { map.removeLayer(peoples); }
+  if (e.target.checked) {
+    const tryShow = () => { if (ethnicData) { loadPeoples(); map.addLayer(peoples); } else setTimeout(tryShow, 200); };
+    tryShow();
+  } else { map.removeLayer(peoples); }
 });
