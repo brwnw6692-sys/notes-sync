@@ -35,8 +35,17 @@ def test_register_adds_unknown_handles_as_pending():
 def test_due_puts_blind_spot_candidates_first():
     state = {}
     de.register(state, {"a": {"covered"}, "b": {"gaza"}}, D1)
-    order = de.due(state, blind_regions={"gaza"}, cap=5)
+    order = de.due(state, blind_regions={"gaza"}, cap=5, today="2026-10-25")
     assert order[0] == "b"
+
+
+def test_due_rotates_and_skips_already_sampled_today():
+    state = {}
+    de.register(state, {"a": {"x"}, "b": {"x"}, "c": {"x"}}, D1)
+    de.record(state, "a", _samples(3), D1)           # a sampled today
+    order = de.due(state, blind_regions=set(), cap=5, today="2026-10-25")
+    assert "a" not in order                           # not re-sampled the same day
+    assert set(order) == {"b", "c"}                   # the never-sampled come up instead
 
 
 def test_a_good_candidate_promotes_after_two_days():

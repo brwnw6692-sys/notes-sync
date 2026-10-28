@@ -29,7 +29,8 @@ class Config:
     vet_min_posts_per_day: float = 1.0
     discovery_daily_cap: int = 20
     discovery_blindspot_reserved: int = 5
-    discovery_per_run: int = 3              # candidate pages actively sampled each run
+    discovery_per_run: int = 20             # candidate pages actively sampled each run
+    discovery_max_pending: int = 500        # pause blind-spot search while the backlog is this deep
     discovery_sample_keep: int = 12         # sample messages retained per candidate
     discovery_searches_per_run: int = 2     # blind-spot directory searches each run
     discovery_default_region: str = "arab_world"

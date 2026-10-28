@@ -26,8 +26,9 @@ def test_channel_url_uses_web_preview():
     assert channel_url("gaza_now", None) == "https://t.me/s/gaza_now"
 
 
-def test_channel_url_pages_backwards_from_cursor_to_fill_gaps():
-    assert channel_url("gaza_now", Cursor(last_native_id=1040)) == "https://t.me/s/gaza_now?before=1041"
+def test_channel_url_always_fetches_the_latest_page_for_forward_polling():
+    # Even with a cursor, we poll the latest page; the parser drops anything not newer than it.
+    assert channel_url("gaza_now", Cursor(last_native_id=1040)) == "https://t.me/s/gaza_now"
 
 
 def test_fetch_ok_parses_items():

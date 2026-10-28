@@ -16,6 +16,10 @@ def _blind_spot_search(cand, key, root, blind, search, now) -> None:
     the map sends scouts to its own gaps. One cell is probed at most once a day."""
     if not search or not blind:
         return
+    # Don't keep finding doors we can't walk through: pause search while the backlog is deep.
+    pending = sum(1 for c in cand.values() if c["status"] == "pending")
+    if pending >= CONFIG.discovery_max_pending:
+        return
     from collector.geo.gazetteer import gazetteer_entries
     from collector.geo.grid import cell_id, cell_of
     from collector.geo.reverse import queries_in_cell
@@ -48,7 +52,7 @@ def _discover(root, key, fetch, items, sources, now, blind=None, search=None) ->
 
     covered = {s.get("region") for s in sources if s.get("status", "active") == "active"}
     blind = {r for c in cand.values() for r in c["regions"]} - covered
-    for handle in de.due(cand, blind, CONFIG.discovery_per_run):
+    for handle in de.due(cand, blind, CONFIG.discovery_per_run, today=now.date().isoformat()):
         res = fetch({"id": handle}, None)
         if not getattr(res, "fetch_ok", False):
             continue

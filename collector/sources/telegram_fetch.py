@@ -4,11 +4,9 @@ from collector.sources.telegram import parse_page
 
 
 def channel_url(channel: str, cursor: Cursor | None) -> str:
-    base = f"https://t.me/s/{channel}"
-    if cursor and cursor.last_native_id:
-        # ?before=<id> pages backwards so we can fill a detected gap.
-        return f"{base}?before={cursor.last_native_id + 1}"
-    return base
+    # Always fetch the channel's latest page; the parser keeps only messages newer than the cursor.
+    # (?before=<id> pages backwards into history — the wrong direction for catching new posts.)
+    return f"https://t.me/s/{channel}"
 
 
 def fetch_channel(client, channel: str, cursor: Cursor | None):

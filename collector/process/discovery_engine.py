@@ -39,17 +39,24 @@ def register(cand_state: dict, cand_regions: dict, now) -> dict:
     return cand_state
 
 
-def due(cand_state: dict, blind_regions, cap: int) -> list:
-    """Pending handles to sample this run — blind-spot ones first, capped."""
-    pend = [{"handle": h, "regions": set(c["regions"])}
-            for h, c in cand_state.items() if c["status"] == "pending"]
-    return [c["handle"] for c in rank_candidates(pend, set(blind_regions), cap)]
+def due(cand_state: dict, blind_regions, cap: int, today: str) -> list:
+    """Pending handles to sample this run. Rotate: never-sampled and least-recently-sampled first,
+    each sampled at most once a day, so a big backlog is worked through fairly instead of starving
+    behind the same few front-runners."""
+    blind = set(blind_regions)
+    pend = [(h, c) for h, c in cand_state.items()
+            if c["status"] == "pending" and c.get("last_sampled") != today]
+    # key: never-sampled ("") first, then oldest last_sampled, then blind-touch as a tiebreak
+    pend.sort(key=lambda hc: (hc[1].get("last_sampled") or "",
+                              not (set(hc[1]["regions"]) & blind)))
+    return [h for h, _ in pend[:cap]]
 
 
 def record(cand_state: dict, handle: str, samples, now) -> str:
     """Fold sampled messages into a candidate, count distinct days seen, then vet. Returns the verdict."""
     c = cand_state[handle]
     day = _day(now)
+    c["last_sampled"] = day
     if day not in c["days"]:
         c["days"].append(day)
     c["samples"] = (c["samples"] + list(samples))[-CONFIG.discovery_sample_keep:]
