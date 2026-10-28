@@ -20,8 +20,20 @@ L.rectangle(AOI, { color: "#39b0b8", weight: 1.5, fill: false, dashArray: "2 4",
 
 const events = L.layerGroup().addTo(map);   // where something is happening (foreground)
 const gaps = L.layerGroup();                 // unwatched hot cells (behind a toggle)
+const borders = L.layerGroup().addTo(map);   // the canvas: states & provinces (knowledge base)
 let lastSnap = null;
 const $ = (id) => document.getElementById(id);
+
+// The administrative canvas: country -> province, so every event has a place in a known structure.
+fetch("data/admin1.geojson").then((r) => r.json()).then((gj) => {
+  L.geoJSON(gj, {
+    style: { color: "#3c6e77", weight: 0.6, opacity: 0.65, fill: false },
+    onEachFeature: (f, lyr) => {
+      const p = f.properties;
+      lyr.bindTooltip(`${p.name_ar || p.name} · ${p.country}`, { sticky: true });
+    },
+  }).addTo(borders);
+}).catch(() => {});
 
 function heatColor(t) {              // 0..1 -> blue(calm) .. red(hot)
   const stops = [[42,111,176],[216,177,47],[216,90,48],[194,46,46]];
@@ -140,4 +152,7 @@ $("demo").onclick = demo;
 $("toggleBlind").addEventListener("change", (e) => {
   if (e.target.checked) { map.addLayer(gaps); if (lastSnap) drawGaps(lastSnap); }
   else { map.removeLayer(gaps); }
+});
+$("toggleBorders").addEventListener("change", (e) => {
+  if (e.target.checked) map.addLayer(borders); else map.removeLayer(borders);
 });
