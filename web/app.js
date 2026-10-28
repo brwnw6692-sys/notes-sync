@@ -18,11 +18,35 @@ map.fitBounds(AOI, { padding: [10, 10] });
 // The perimeter: a clear line showing exactly how far the system listens.
 L.rectangle(AOI, { color: "#39b0b8", weight: 1.5, fill: false, dashArray: "2 4", interactive: false }).addTo(map);
 
+map.createPane("peoplesPane");               // the texture layer sits below borders and events
+map.getPane("peoplesPane").style.zIndex = 350;
+
 const events = L.layerGroup().addTo(map);   // where something is happening (foreground)
 const gaps = L.layerGroup();                 // unwatched hot cells (behind a toggle)
 const borders = L.layerGroup().addTo(map);   // the canvas: states & provinces (knowledge base)
-let lastSnap = null;
+const peoples = L.layerGroup();              // who lives where: ethnicity & sect (behind a toggle)
+let lastSnap = null, peoplesLoaded = false;
 const $ = (id) => document.getElementById(id);
+
+function groupColor(name) {                  // a stable color per ethnic/sect group
+  let h = 0;
+  for (const c of name || "") h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `hsl(${h},58%,55%)`;
+}
+
+function loadPeoples() {
+  if (peoplesLoaded) return;
+  peoplesLoaded = true;
+  fetch("data/ethnic.geojson").then((r) => r.json()).then((gj) => {
+    L.geoJSON(gj, {
+      pane: "peoplesPane",
+      style: (f) => ({ color: groupColor(f.properties.group), weight: 0.5, opacity: 0.4,
+        fillColor: groupColor(f.properties.group),
+        fillOpacity: f.properties.type === "Statewide" ? 0.1 : 0.3 }),
+      onEachFeature: (f, lyr) => lyr.bindTooltip(`${f.properties.group} · ${f.properties.country}`, { sticky: true }),
+    }).addTo(peoples);
+  }).catch(() => {});
+}
 
 // The administrative canvas: country -> province, so every event has a place in a known structure.
 fetch("data/admin1.geojson").then((r) => r.json()).then((gj) => {
@@ -155,4 +179,7 @@ $("toggleBlind").addEventListener("change", (e) => {
 });
 $("toggleBorders").addEventListener("change", (e) => {
   if (e.target.checked) map.addLayer(borders); else map.removeLayer(borders);
+});
+$("togglePeoples").addEventListener("change", (e) => {
+  if (e.target.checked) { loadPeoples(); map.addLayer(peoples); } else { map.removeLayer(peoples); }
 });

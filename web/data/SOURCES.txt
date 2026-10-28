@@ -1,0 +1,12 @@
+Map data layers:
+
+admin1.geojson — administrative boundaries (provinces/governorates).
+  Source: Natural Earth (public domain). https://www.naturalearthdata.com/
+
+ethnic.geojson — ethnic and sect settlement areas (politically relevant groups).
+  Source: GeoEPR 2021, ETH Zurich International Conflict Research.
+  https://icr.ethz.ch/data/epr/geoepr/
+  Cite: Wucherpfennig, Weidmann, Girardin, Cederman, Wimmer (2011),
+  "Politically Relevant Ethnic Groups Across Space and Time: Introducing
+  the GeoEPR Dataset," Conflict Management and Peace Science 28(5): 423-437.
+  Filtered to the region (period 2021), geometry rounded to 3 decimals.
