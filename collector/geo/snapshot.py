@@ -32,7 +32,8 @@ def locate_rows(items) -> list:
         rows.append({"lat": lat, "lon": lon,
                      "origin_cluster_id": it.get("origin_cluster_id"),
                      "is_original": it.get("is_original", True),
-                     "posted_at": it.get("posted_at", "")})
+                     "posted_at": it.get("posted_at", ""),
+                     "source_id": it.get("source_id", "")})
     return rows
 
 
@@ -48,12 +49,14 @@ def _age_hours(posted_at, now):
     return (n - t).total_seconds() / 3600
 
 
-def build_snapshot(items, now: datetime) -> dict:
+def build_snapshot(items, now: datetime, lens_of: dict | None = None) -> dict:
     heat = build_heat()
     coverage = grid_coverage(items)
+    lens_of = lens_of or {}
 
     # Bin located messages at city scale; count independent sources (distinct origin clusters),
-    # and separately those from the recent window, so the map can show what is hot *now*.
+    # those from the recent window (what is hot *now*), and who is reporting (by lens) — the start
+    # of a live "presence" picture: not just that a place is active, but from whose vantage.
     level = CONFIG.active_display_level
     recent_h = CONFIG.recent_activity_hours
     buckets = {}
@@ -62,11 +65,14 @@ def build_snapshot(items, now: datetime) -> dict:
         if lat is None or lon is None or not in_bounds(lat, lon):
             continue
         cid = it.get("origin_cluster_id") if it.get("is_original") else None
-        b = buckets.setdefault(cell_at(lat, lon, level), {"all": set(), "recent": set()})
+        b = buckets.setdefault(cell_at(lat, lon, level), {"all": set(), "recent": set(), "lens": {}})
         b["all"].add(cid)
         age = _age_hours(it.get("posted_at"), now)
         if age is not None and 0 <= age <= recent_h:
             b["recent"].add(cid)
+            lens = lens_of.get(it.get("source_id"), "")
+            if lens:
+                b["lens"].setdefault(lens, set()).add(cid)
 
     def _n(clusters):
         return len([c for c in clusters if c is not None]) or len(clusters)
@@ -77,6 +83,7 @@ def build_snapshot(items, now: datetime) -> dict:
         active.append({
             "lat": round(clat, 4), "lon": round(clon, 4), "level": level,
             "count": _n(b["all"]), "recent": _n(b["recent"]) if b["recent"] else 0,
+            "lenses": {lens: _n(cl) for lens, cl in b["lens"].items()},
             "heat": round(cell_weight((clat, clon)), 3),
         })
 

@@ -9,11 +9,12 @@ def _norm(handle: str) -> str:
     return handle.lstrip("@").lower()
 
 
-def add_source(sources, handle, region, tier="quiet", canary=False, discovered=False, lens=""):
+def add_source(sources, handle, region, tier="quiet", canary=False, discovered=False, lens="", affiliation=""):
     """Add or update a source. Idempotent by normalized handle. Returns a new list.
     discovered=True marks a channel the discovery engine found, so it is distinguishable from
     the user's own seeds — and a re-add never clobbers a handle the user already curates.
-    lens (ar/fa/he) is the source's reporting window, so Israel reads as its own perspective."""
+    lens (ar/fa/he) is the source's reporting window; affiliation (regime, opposition, hezbollah,
+    israeli, ...) is who it speaks for — the basis for the live presence/control picture."""
     sid = _norm(handle)
     if not _HANDLE.match(sid):
         raise ValueError(f"invalid channel handle: {handle!r}")
@@ -25,6 +26,8 @@ def add_source(sources, handle, region, tier="quiet", canary=False, discovered=F
         entry["discovered"] = True
     if lens:
         entry["lens"] = lens
+    if affiliation:
+        entry["affiliation"] = affiliation
     out = [dict(s) for s in sources if s["id"] != sid]
     out.append(entry)
     return out

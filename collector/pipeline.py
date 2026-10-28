@@ -89,7 +89,8 @@ def execute_run(root: Path, key: bytes, fetch, now: datetime, budget: int, searc
     # The map reflects everything in the hot tier (last 7 days), not just this run's delta,
     # and re-locates any item that has no coordinates with the current gazetteer.
     recent = state_store.load_recent_items(key, root)
-    snapshot = build_snapshot(locate_rows(recent), now)
+    lens_of = {s["id"]: s.get("lens", "") for s in state["sources"]}
+    snapshot = build_snapshot(locate_rows(recent), now, lens_of=lens_of)
     save_snapshot(snapshot, key, root)
 
     # Mine the whole hot tier for references (most runs fetch nothing new), and send scouts to the
