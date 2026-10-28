@@ -25,7 +25,7 @@ const events = L.layerGroup().addTo(map);   // where something is happening (for
 const gaps = L.layerGroup();                 // unwatched hot cells (behind a toggle)
 const borders = L.layerGroup().addTo(map);   // the canvas: states & provinces (knowledge base)
 const peoples = L.layerGroup();              // who lives where: ethnicity & sect (behind a toggle)
-let lastSnap = null, peoplesLoaded = false;
+let lastSnap = null, peoplesLoaded = false, colorByActor = false;
 const $ = (id) => document.getElementById(id);
 
 function groupColor(name) {                  // a stable color per ethnic/sect group
@@ -91,6 +91,15 @@ const LENS_LABEL = { ar: "Arab", fa: "Persian", he: "Israeli" };
 const AFFIL_LABEL = { hamas: "Hamas", pij: "Islamic Jihad", hezbollah: "Hezbollah", pmf: "PMF (Hashd)",
   sdf: "SDF / Kurdish", houthi: "Houthi", irgc: "IRGC / Iran", syrian_army: "Syrian Army",
   syrian_opposition: "Syrian Opposition", isis: "ISIS", israeli_mil: "Israeli military" };
+const AFFIL_COLOR = { hamas: "#3fa34d", pij: "#1b7a3a", hezbollah: "#f2c037", pmf: "#8e44ad",
+  sdf: "#e8743b", houthi: "#19a3a3", irgc: "#d64545", syrian_army: "#4a6fd4",
+  syrian_opposition: "#1aa37a", isis: "#777", israeli_mil: "#2b8ce0" };
+
+function dominantAffil(affil) {
+  const e = Object.entries(affil || {});
+  if (!e.length) return null;
+  return e.sort((a, b) => b[1] - a[1])[0][0];
+}
 
 function lensLine(lenses) {
   const parts = Object.entries(lenses || {}).sort((a, b) => b[1] - a[1])
@@ -99,8 +108,8 @@ function lensLine(lenses) {
 }
 
 function affilLine(affil) {
-  const parts = Object.entries(affil || {}).sort((a, b) => b[1] - a[1])
-    .map(([k, n]) => `${AFFIL_LABEL[k] || k} (${n})`);
+  const parts = Object.entries(affil || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) =>
+    `<span style="color:${AFFIL_COLOR[k] || "#9fb3c2"}">●</span> ${AFFIL_LABEL[k] || k} (${n})`);
   return parts.length ? `<div class="il">🎖 actor voices: ${parts.join(", ")} <span class="dim">· orientation, not control</span></div>` : "";
 }
 
@@ -135,13 +144,18 @@ function drawEvents(snap) {
     const now = c.recent || 0;
     const t = now ? now / maxRecent : 0;
     const r = 5 + 9 * Math.sqrt(now ? t : 0.12);
-    const col = now ? heatColor(0.5 + 0.5 * t) : "#5b6b78";   // cold grey if nothing recent
+    // Heat view: colour = intensity. Actor view: colour = who dominates the reporting here.
+    const actor = colorByActor ? dominantAffil(c.affil) : null;
+    const col = actor ? AFFIL_COLOR[actor]
+      : (now ? heatColor(0.5 + 0.5 * t) : "#5b6b78");          // cold grey if nothing recent
     L.circleMarker([c.lat, c.lon], {
       radius: r + 7, stroke: false, fillColor: col, fillOpacity: now ? 0.18 : 0.08,
     }).addTo(events);
+    const tip = actor ? `${AFFIL_LABEL[actor]} · ${now} in last 48h — click for details`
+      : `${now} in last 48h · ${c.count} this week — click for details`;
     const core = L.circleMarker([c.lat, c.lon], {
       radius: r, color: "#fff", weight: 1, fillColor: col, fillOpacity: now ? 0.9 : 0.5,
-    }).bindTooltip(`${now} in last 48h · ${c.count} this week — click for details`).addTo(events);
+    }).bindTooltip(tip).addTo(events);
     core.on("click", () => showInfo(c));
   }
 }
@@ -243,6 +257,10 @@ $("toggleBlind").addEventListener("change", (e) => {
 });
 $("toggleBorders").addEventListener("change", (e) => {
   if (e.target.checked) map.addLayer(borders); else map.removeLayer(borders);
+});
+$("toggleActor").addEventListener("change", (e) => {
+  colorByActor = e.target.checked;
+  if (lastSnap) drawEvents(lastSnap);
 });
 $("togglePeoples").addEventListener("change", (e) => {
   if (e.target.checked) {
