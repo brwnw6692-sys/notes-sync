@@ -78,5 +78,5 @@ def test_new_promotions_are_reported_once():
     de.register(state, {"origin_b": {"arab_world"}}, D1)
     de.record(state, "origin_b", _samples(5), D1)
     de.record(state, "origin_b", _samples(5), D2)
-    assert de.new_promotions(state) == [("origin_b", "arab_world", "ar")]
+    assert de.new_promotions(state) == [("origin_b", "arab_world", "ar", "")]
     assert de.new_promotions(state) == []   # already added, not reported again

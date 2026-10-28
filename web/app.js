@@ -88,11 +88,20 @@ function knowledgeAt(lat, lon) {
   return { province, country, peoples };
 }
 const LENS_LABEL = { ar: "Arab", fa: "Persian", he: "Israeli" };
+const AFFIL_LABEL = { hamas: "Hamas", pij: "Islamic Jihad", hezbollah: "Hezbollah", pmf: "PMF (Hashd)",
+  sdf: "SDF / Kurdish", houthi: "Houthi", irgc: "IRGC / Iran", syrian_army: "Syrian Army",
+  syrian_opposition: "Syrian Opposition", isis: "ISIS", israeli_mil: "Israeli military" };
 
 function lensLine(lenses) {
   const parts = Object.entries(lenses || {}).sort((a, b) => b[1] - a[1])
     .map(([k, n]) => `${LENS_LABEL[k] || k} (${n})`);
   return parts.length ? `<div class="il">🗣 reported by: ${parts.join(", ")}</div>` : "";
+}
+
+function affilLine(affil) {
+  const parts = Object.entries(affil || {}).sort((a, b) => b[1] - a[1])
+    .map(([k, n]) => `${AFFIL_LABEL[k] || k} (${n})`);
+  return parts.length ? `<div class="il">🎖 actor voices: ${parts.join(", ")} <span class="dim">· orientation, not control</span></div>` : "";
 }
 
 function showInfo(c) {
@@ -104,7 +113,7 @@ function showInfo(c) {
     `<div class="il">📍 <b>${where}</b></div>` +
     `<div class="il">👥 ${who} <span class="dim">· background, GeoEPR 2021</span></div>` +
     `<div class="il">🔴 <b>${c.recent || 0}</b> reports in last 48h · ${c.count} this week</div>` +
-    lensLine(c.lenses);
+    lensLine(c.lenses) + affilLine(c.affil);
   $("info").style.display = "block";
   $("infoClose").onclick = () => { $("info").style.display = "none"; };
 }
@@ -215,10 +224,10 @@ async function loadLive(passphrase) {
 
 function demo() {
   const cells = [];
-  const demo = [[31.5,34.47,3,40,22,{ar:19,he:3}],[33.89,35.5,2,18,3,{ar:3}],
-                [35.69,51.39,1,9,0,{}],[33.31,44.36,2,22,11,{ar:11}]];
-  for (const [lat, lon, lvl, n, rec, lenses] of demo)
-    cells.push({ lat, lon, level: lvl, count: n, recent: rec, lenses, heat: 6 + Math.random() * 4 });
+  const demo = [[31.5,34.47,3,40,22,{ar:19,he:3},{hamas:12}],[33.89,35.5,2,18,3,{ar:3},{hezbollah:3}],
+                [35.69,51.39,1,9,0,{},{}],[33.31,44.36,2,22,11,{ar:11},{pmf:7}]];
+  for (const [lat, lon, lvl, n, rec, lenses, affil] of demo)
+    cells.push({ lat, lon, level: lvl, count: n, recent: rec, lenses, affil, heat: 6 + Math.random() * 4 });
   draw({ generated_at: new Date().toISOString(), coverage_pct: 37, hot_cells: 295,
          covered_hot_cells: 109, active: cells,
          blind: [{ lat: 36.2, lon: 37.16, heat: 7 }, { lat: 15.37, lon: 44.19, heat: 7 }] });

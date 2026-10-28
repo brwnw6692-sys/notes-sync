@@ -20,11 +20,13 @@ from collector.store.state_store import load_sources, save_sources
 
 
 def apply_change(root: Path, key: bytes, action: str, handle: str = "",
-                 region: str = "", tier: str = "quiet", canary: bool = False):
+                 region: str = "", tier: str = "quiet", canary: bool = False,
+                 lens: str = "", affiliation: str = ""):
     """Pure core: mutate the encrypted registry under `root`. Returns the list for `list`."""
     sources = load_sources(key, root)
     if action == "add":
-        sources = add_source(sources, handle, region=region, tier=tier, canary=canary)
+        sources = add_source(sources, handle, region=region, tier=tier, canary=canary,
+                             lens=lens, affiliation=affiliation)
         save_sources(sources, key, root)
     elif action == "remove":
         sources = remove_source(sources, handle)
@@ -51,6 +53,8 @@ def _parse(argv):
     a.add_argument("--region", required=True)
     a.add_argument("--tier", choices=["hot", "quiet"], default="quiet")
     a.add_argument("--canary", action="store_true")
+    a.add_argument("--lens", default="", help="ar / fa / he — the source's reporting window")
+    a.add_argument("--affiliation", default="", help="who it speaks for (regime, hezbollah, israeli, ...)")
     r = sub.add_parser("remove", parents=[common])
     r.add_argument("handle")
     sub.add_parser("list", parents=[common])
@@ -79,7 +83,9 @@ def main(argv=None) -> int:
                               handle=getattr(args, "handle", ""),
                               region=getattr(args, "region", ""),
                               tier=getattr(args, "tier", "quiet"),
-                              canary=getattr(args, "canary", False))
+                              canary=getattr(args, "canary", False),
+                              lens=getattr(args, "lens", ""),
+                              affiliation=getattr(args, "affiliation", ""))
 
         if args.action == "list":
             print(f"{len(result)} source(s):")

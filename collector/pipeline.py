@@ -58,13 +58,15 @@ def _discover(root, key, fetch, items, sources, now, blind=None, search=None) ->
             continue
         sampled = process_items(res.items)
         de.record(cand, handle, [{"lang": it.lang, "place_hits": len(it.tags.get("places", [])),
-                                   "is_original": it.is_original} for it in sampled], now)
+                                   "is_original": it.is_original} for it in sampled], now,
+                  texts=[it.text_raw for it in sampled])
 
     promos = de.new_promotions(cand)
     if promos:
         registry = state_store.load_sources(key, root)
-        for handle, region, lens in promos:
-            registry = add_source(registry, handle, region, tier="quiet", discovered=True, lens=lens)
+        for handle, region, lens, affiliation in promos:
+            registry = add_source(registry, handle, region, tier="quiet", discovered=True,
+                                  lens=lens, affiliation=affiliation)
         state_store.save_sources(registry, key, root)
     state_store.save_candidates(cand, key, root)
     return {"promoted": len(promos), "tracked": len(cand)}
@@ -90,7 +92,8 @@ def execute_run(root: Path, key: bytes, fetch, now: datetime, budget: int, searc
     # and re-locates any item that has no coordinates with the current gazetteer.
     recent = state_store.load_recent_items(key, root)
     lens_of = {s["id"]: s.get("lens", "") for s in state["sources"]}
-    snapshot = build_snapshot(locate_rows(recent), now, lens_of=lens_of)
+    affiliation_of = {s["id"]: s.get("affiliation", "") for s in state["sources"]}
+    snapshot = build_snapshot(locate_rows(recent), now, lens_of=lens_of, affiliation_of=affiliation_of)
     save_snapshot(snapshot, key, root)
 
     # Mine the whole hot tier for references (most runs fetch nothing new), and send scouts to the
