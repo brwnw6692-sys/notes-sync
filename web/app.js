@@ -225,11 +225,51 @@ async function decryptFile(blob, dataKey) {
   return JSON.parse(new TextDecoder().decode(unpad(plain)));
 }
 
+let dataKeyRef = null;
+
+async function loadAssessment() {
+  if (!dataKeyRef) return;
+  $("assess").style.display = "block";
+  $("assess").innerHTML = `<button id="assessClose">×</button><div class="dim">Loading assessment…</div>`;
+  $("assessClose").onclick = () => { $("assess").style.display = "none"; };
+  try {
+    const a = await decryptFile(await fetchDataFile("assessment.bin"), dataKeyRef);
+    renderAssessment(a);
+  } catch (e) {
+    $("assess").innerHTML = `<button id="assessClose">×</button><div class="dim">No assessment yet (${e.message}).</div>`;
+    $("assessClose").onclick = () => { $("assess").style.display = "none"; };
+  }
+}
+
+function renderAssessment(a) {
+  const esc = (s) => String(s == null ? "" : s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+  const age = a.generated_at ? Math.round((Date.now() - new Date(a.generated_at)) / 3600000) : null;
+  let h = `<button id="assessClose">×</button><h2>Assessment</h2>`;
+  h += `<div class="dim">${age != null ? "updated " + age + "h ago" : ""} · AI-generated, inference not fact</div>`;
+  if (a.summary) h += `<p>${esc(a.summary)}</p>`;
+  for (const ac of a.actors || []) {
+    h += `<div class="actor"><h3>${esc(ac.actor)}</h3>`;
+    const list = (label, arr) => (arr && arr.length) ? `<div><b>${label}:</b> ${arr.map(esc).join("; ")}</div>` : "";
+    h += list("Observed", ac.observed) + list("Allies", ac.allies) + list("Tensions", ac.tensions);
+    h += list("Movements", ac.movements) + list("Open interests", ac.open_interests);
+    if (ac.hidden_interests && ac.hidden_interests.length) {
+      h += `<div><b>Hidden interests:</b> ` + ac.hidden_interests.map((x) =>
+        `${esc(x.claim)} <span class="dim">(${esc(x.confidence)})</span>`).join("; ") + `</div>`;
+    }
+    h += `</div>`;
+  }
+  if (!(a.actors || []).length && a.raw) h += `<pre class="dim">${esc(a.raw)}</pre>`;
+  $("assess").innerHTML = h;
+  $("assessClose").onclick = () => { $("assess").style.display = "none"; };
+}
+
 async function loadLive(passphrase) {
   $("status").textContent = "Decrypting…";
   try {
     const [wrapped, mapBlob] = await Promise.all([fetchDataFile("wrapped_key.bin"), fetchDataFile("map.bin")]);
     const dataKey = await unwrapKey(wrapped, passphrase);
+    dataKeyRef = dataKey;
+    $("analysis").style.display = "inline-block";
     draw(await decryptFile(mapBlob, dataKey));
   } catch (e) {
     $("status").innerHTML = `<span style="color:#d85a30">${e.message}. Wrong passphrase, or no data yet.</span>`;
@@ -251,6 +291,7 @@ function demo() {
 $("go").onclick = () => loadLive($("pass").value);
 $("pass").addEventListener("keydown", (e) => { if (e.key === "Enter") loadLive($("pass").value); });
 $("demo").onclick = demo;
+$("analysis").onclick = loadAssessment;
 $("toggleBlind").addEventListener("change", (e) => {
   if (e.target.checked) { map.addLayer(gaps); if (lastSnap) drawGaps(lastSnap); }
   else { map.removeLayer(gaps); }

@@ -11,6 +11,7 @@ _STATE = "state.bin"
 _SOURCES = "sources.bin"
 _CANDIDATES = "candidates.bin"
 _SEARCHES = "searches.bin"
+_ASSESSMENT = "assessment.bin"
 _HEARTBEAT = "heartbeat.bin"
 _SHARDS = "shards"
 
@@ -61,6 +62,15 @@ def save_searches(log: dict, key: bytes, root: Path) -> None:
 
 def load_searches(key: bytes, root: Path) -> dict:
     path = Path(root) / _SEARCHES
+    return _read(path, key) if path.exists() else {}
+
+
+def save_assessment(assessment: dict, key: bytes, root: Path) -> None:
+    _write(Path(root) / _ASSESSMENT, assessment, key)
+
+
+def load_assessment(key: bytes, root: Path) -> dict:
+    path = Path(root) / _ASSESSMENT
     return _read(path, key) if path.exists() else {}
 
 

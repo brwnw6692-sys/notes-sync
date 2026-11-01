@@ -57,6 +57,7 @@ class Config:
     # ~2 km at level 2) rather than binning them into coarse 55 km cells.
     active_display_level: int = 2          # RETUNE
     recent_activity_hours: int = 48        # window for "what is happening now" vs the 7-day backdrop
+    gemini_model: str = "gemini-2.0-flash" # the free analyst model used by the hourly analysis job
     rhythm_active_ratio: float = 1.0        # active = share >= ratio x uniform (1/24); RETUNE
 
 

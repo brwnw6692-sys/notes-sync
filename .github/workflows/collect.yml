@@ -5,9 +5,9 @@ on:
     - cron: "*/10 * * * *"
   workflow_dispatch:
 
-# Never let two runs overwrite each other's data branch.
+# Never let two jobs overwrite each other's data branch (collect and analyze share this group).
 concurrency:
-  group: collect
+  group: data-branch
   cancel-in-progress: false
 
 permissions:
