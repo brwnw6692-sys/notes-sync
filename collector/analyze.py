@@ -25,11 +25,18 @@ def call_gemini(prompt: str, api_key: str, model: str) -> str:
     """Send the prompt to Gemini and return its text. Network lives only here. Safety filters are set
     to BLOCK_NONE — conflict reporting would otherwise be refused — and errors are explicit so a failed
     run says why. The error strings never contain the API key (it is only in the URL, never logged)."""
+    import time
     import httpx
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     body = {"contents": [{"parts": [{"text": prompt}]}], "safetySettings": _SAFETY,
             "generationConfig": {"temperature": 0.4}}
-    r = httpx.post(url, json=body, timeout=180)
+    r = None
+    for attempt in range(4):                    # the free model is often briefly overloaded (429/503)
+        r = httpx.post(url, json=body, timeout=180)
+        if r.status_code in (429, 500, 503) and attempt < 3:
+            time.sleep(8 * (attempt + 1))
+            continue
+        break
     if r.status_code != 200:
         raise RuntimeError(f"HTTP {r.status_code}: {r.text[:400]}")
     data = r.json()
