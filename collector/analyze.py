@@ -16,14 +16,30 @@ from collector.store.guard import check_tree
 from collector.store.state_store import load_recent_items, load_sources, save_assessment
 
 
+_SAFETY = [{"category": c, "threshold": "BLOCK_NONE"} for c in (
+    "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH",
+    "HARM_CATEGORY_SEXUALLY_EXPLICIT", "HARM_CATEGORY_DANGEROUS_CONTENT")]
+
+
 def call_gemini(prompt: str, api_key: str, model: str) -> str:
-    """Send the prompt to the Gemini API and return the model's text. Network lives only here."""
+    """Send the prompt to Gemini and return its text. Network lives only here. Safety filters are set
+    to BLOCK_NONE — conflict reporting would otherwise be refused — and errors are explicit so a failed
+    run says why. The error strings never contain the API key (it is only in the URL, never logged)."""
     import httpx
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    r = httpx.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=120)
-    r.raise_for_status()
+    body = {"contents": [{"parts": [{"text": prompt}]}], "safetySettings": _SAFETY,
+            "generationConfig": {"temperature": 0.4}}
+    r = httpx.post(url, json=body, timeout=180)
+    if r.status_code != 200:
+        raise RuntimeError(f"HTTP {r.status_code}: {r.text[:400]}")
     data = r.json()
-    return data["candidates"][0]["content"]["parts"][0]["text"]
+    cands = data.get("candidates") or []
+    if not cands:
+        raise RuntimeError(f"no candidates (promptFeedback={str(data.get('promptFeedback'))[:300]})")
+    parts = (cands[0].get("content") or {}).get("parts") or []
+    if not parts:
+        raise RuntimeError(f"no parts (finishReason={cands[0].get('finishReason')})")
+    return parts[0].get("text", "")
 
 
 def main(argv=None) -> int:
@@ -51,7 +67,11 @@ def main(argv=None) -> int:
     try:
         text = call_gemini(analyst_prompt(digest, now), api_key, CONFIG.gemini_model)
     except Exception as e:                      # never let the analyst crash the pipeline
-        print(f"analyst: model call failed ({type(e).__name__})", file=sys.stderr)
+        msg = f"{type(e).__name__}: {e}"[:500]
+        print(f"analyst: model call failed — {msg}", file=sys.stderr)
+        # store the reason (encrypted) so we can diagnose without the Actions log
+        save_assessment({"generated_at": now.isoformat(), "actors": [], "summary": "", "error": msg}, key, root)
+        check_tree(root)
         return 0
 
     assessment = parse_assessment(text)
